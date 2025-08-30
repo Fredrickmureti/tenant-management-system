@@ -111,8 +111,10 @@ const MeterReadings = () => {
 
       const previousReading = previousBilling?.current_reading || 0;
       const reading = parseFloat(currentReading);
-      const unitsUsed = Math.max(0, reading - previousReading);
       const ratePerUnit = 50; // Default rate
+      
+      // Calculate bill amount based on usage (units_used will be calculated by the database)
+      const unitsUsed = Math.max(0, reading - previousReading);
       const billAmount = unitsUsed * ratePerUnit;
 
       // Check if reading already exists for this month
@@ -125,12 +127,11 @@ const MeterReadings = () => {
         .maybeSingle();
 
       if (existingBilling) {
-        // Update existing
+        // Update existing - don't set units_used as it's calculated automatically
         const { error } = await supabase
           .from('billing_cycles')
           .update({
             current_reading: reading,
-            units_used: unitsUsed,
             bill_amount: billAmount,
             current_balance: billAmount // Will be calculated with previous balance by triggers
           })
@@ -138,7 +139,7 @@ const MeterReadings = () => {
 
         if (error) throw error;
       } else {
-        // Create new billing cycle
+        // Create new billing cycle - don't set units_used as it's calculated automatically
         const { error } = await supabase
           .from('billing_cycles')
           .insert({
@@ -147,7 +148,6 @@ const MeterReadings = () => {
             year: currentYear,
             previous_reading: previousReading,
             current_reading: reading,
-            units_used: unitsUsed,
             rate_per_unit: ratePerUnit,
             bill_amount: billAmount,
             current_balance: billAmount
