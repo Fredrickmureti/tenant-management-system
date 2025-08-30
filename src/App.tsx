@@ -12,7 +12,11 @@ import Tenants from "./pages/Tenants";
 import Billing from "./pages/Billing";
 import Payments from "./pages/Payments";
 import Communications from "./pages/Communications";
-import TenantDashboard from "./pages/TenantDashboard";
+import TenantLayout from "@/components/tenant/TenantLayout";
+import Overview from "@/pages/tenant/Overview";
+import TenantBills from "@/pages/tenant/Bills";
+import TenantPayments from "@/pages/tenant/Payments";
+import TenantProfile from "@/pages/tenant/Profile";
 import TenantAuth from "./pages/TenantAuth";
 import MeterReadings from "./pages/MeterReadings";
 import { ThemeProvider } from "next-themes";
@@ -30,7 +34,12 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/tenant-auth" element={<TenantAuth />} />
-              <Route path="/tenant" element={<TenantDashboard />} />
+              <Route path="/tenant" element={<TenantLayout />}>
+                <Route index element={<Overview />} />
+                <Route path="bills" element={<TenantBills />} />
+                <Route path="payments" element={<TenantPayments />} />
+                <Route path="profile" element={<TenantProfile />} />
+              </Route>
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="tenants" element={<Tenants />} />
