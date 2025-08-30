@@ -47,24 +47,24 @@ const TenantAuth = () => {
             return
           }
 
-          // Check if there's a tenant record with this email that needs linking
-          const { data: unlinkedTenant, error: unlinkError } = await supabase
+          // Check if there's a tenant record with this email
+          const { data: existingTenant, error: existingError } = await supabase
             .from('tenants')
             .select('*')
             .eq('email', data.session.user.email)
-            .is('user_id', null)
+            .eq('status', 'active')
             .maybeSingle()
 
-          if (unlinkError) {
-            console.error('Error checking unlinked tenant:', unlinkError)
+          if (existingError) {
+            console.error('Error checking existing tenant:', existingError)
           }
 
-          if (unlinkedTenant) {
+          if (existingTenant) {
             console.log('Linking user to existing tenant record')
             const { error: linkError } = await supabase
               .from('tenants')
               .update({ user_id: data.session.user.id })
-              .eq('id', unlinkedTenant.id)
+              .eq('id', existingTenant.id)
 
             if (!linkError) {
               console.log('Successfully linked, redirecting to dashboard')
@@ -283,25 +283,27 @@ const TenantAuth = () => {
         if (tenantData) {
           navigate('/tenant')
         } else {
-          // Try to link to existing tenant record
-          const { data: unlinkedTenant, error: unlinkError } = await supabase
+          // Try to find existing tenant record by email
+          const { data: existingTenant, error: existingError } = await supabase
             .from('tenants')
             .select('*')
             .eq('email', data.user.email)
-            .is('user_id', null)
+            .eq('status', 'active')
             .maybeSingle()
 
-          if (unlinkError) {
-            console.error('Error checking unlinked tenant:', unlinkError)
+          if (existingError) {
+            console.error('Error checking existing tenant:', existingError)
           }
 
-          if (unlinkedTenant) {
+          if (existingTenant) {
+            // Update the tenant record to link to this user
             const { error: updateError } = await supabase
               .from('tenants')
               .update({ user_id: data.user.id })
-              .eq('id', unlinkedTenant.id)
+              .eq('id', existingTenant.id)
             
             if (!updateError) {
+              console.log('Successfully linked tenant to user')
               navigate('/tenant')
             } else {
               console.error('Error linking tenant:', updateError)
@@ -314,8 +316,8 @@ const TenantAuth = () => {
             }
           } else {
             toast({
-              title: "Account Setup Required",
-              description: "Your account needs to be linked. Please contact your administrator.",
+              title: "Access Denied",
+              description: "No tenant account found for your email. Please contact your administrator to set up your account.",
               variant: "destructive",
             })
             await supabase.auth.signOut()
