@@ -12,6 +12,8 @@ import Tenants from "./pages/Tenants";
 import Billing from "./pages/Billing";
 import Payments from "./pages/Payments";
 import Communications from "./pages/Communications";
+import TenantDashboard from "./pages/TenantDashboard";
+import TenantAuth from "./pages/TenantAuth";
 import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/tenant-auth" element={<TenantAuth />} />
+              <Route path="/tenant" element={<TenantDashboard />} />
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="tenants" element={<Tenants />} />
