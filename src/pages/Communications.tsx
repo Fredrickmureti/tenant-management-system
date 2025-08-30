@@ -73,7 +73,7 @@ const Communications = () => {
 			// Load billing cycles for receipt generation
 			const { data: cyclesData } = await supabase
 				.from('billing_cycles')
-				.select('*, tenants!inner(name)')
+				.select('*, tenants(name)')
 				.order('created_at', { ascending: false })
 
 			const tenantMap = new Map((tenantsData || []).map(t => [t.id, t]))
