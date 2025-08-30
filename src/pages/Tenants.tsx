@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/integrations/supabase/client'
-import type { Tables } from '@/integrations/supabase/types'
+import type { Tables, TablesInsert } from '@/integrations/supabase/types'
 import { 
 	Dialog, 
 	DialogContent, 
@@ -35,15 +35,22 @@ const TenantForm = ({
 	isLoading 
 }: { 
 	tenant?: Tenant, 
-	onSubmit: (data: Partial<Tenant>) => void,
+	onSubmit: (data: TablesInsert<'tenants'>) => void,
 	isLoading: boolean
 }) => {
 	const isEditing = !!tenant;
-	const [formData, setFormData] = useState<Partial<Tenant>>(
-		tenant || {
+	const [formData, setFormData] = useState<TablesInsert<'tenants'>>(
+		tenant ? {
+			name: tenant.name,
+			phone: tenant.phone,
+			email: tenant.email || undefined,
+			house_unit_number: tenant.house_unit_number,
+			meter_connection_number: tenant.meter_connection_number,
+			status: tenant.status
+		} : {
 		name: '',
 		phone: '',
-		email: '',
+		email: undefined,
 		house_unit_number: '',
 		meter_connection_number: '',
 		status: 'active'
@@ -191,7 +198,7 @@ const Tenants = () => {
 	}
 
 	// Function to handle creating a new tenant
-	const handleAddTenant = async (tenantData: Partial<Tenant>) => {
+	const handleAddTenant = async (tenantData: TablesInsert<'tenants'>) => {
 		setIsProcessing(true)
 		try {
 			const { data, error } = await supabase
@@ -218,7 +225,7 @@ const Tenants = () => {
 	}
 	
 	// Function to handle updating an existing tenant
-	const handleUpdateTenant = async (tenantData: Partial<Tenant>) => {
+	const handleUpdateTenant = async (tenantData: TablesInsert<'tenants'>) => {
 		if (!editingTenant?.id) return
 		
 		setIsProcessing(true)
