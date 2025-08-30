@@ -1,73 +1,133 @@
-# Welcome to your Lovable project
+# TenantFlow Bills
 
-## Project info
+> Modern, multi-tenant billing and payments platform for property managers and tenants.
 
-**URL**: https://lovable.dev/projects/63df09b6-0eef-45bc-900d-22e42a5396df
+---
 
-## How can I edit this code?
+## 🚀 Overview
 
-There are several ways of editing your application.
+TenantFlow Bills is a full-featured, modern web application for managing tenants, utility billing cycles, and payments. It empowers property managers with a beautiful admin dashboard and gives tenants a secure portal to view bills, payment history, and their profile—all powered by Supabase and React.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/63df09b6-0eef-45bc-900d-22e42a5396df) and start prompting.
+## ✨ Features
 
-Changes made via Lovable will be committed automatically to this repo.
+### Admin Dashboard
+- **Tenants:** Add, update, search, and manage tenants. Invite tenants to self-serve via the portal.
+- **Billing:** Create monthly bills, track meter readings, rates, and balances. Prevent duplicate cycles.
+- **Payments:** Record and view payments, see outstanding balances, and export data.
+- **Communications:** (Optional) Log and send email/SMS notifications for bills and reminders.
+- **Theme:** Light/dark mode with consistent, accessible design tokens.
 
-**Use your preferred IDE**
+### Tenant Portal
+- **Overview:** Friendly welcome, current bill, and quick stats.
+- **Bills:** List of all bills, balances, and due dates.
+- **Payments:** Payment history and receipts.
+- **Profile:** View (and optionally edit) contact and unit info.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🏗️ How It Works
 
-Follow these steps:
+- **Authentication:** Supabase Auth (email magic link, confirm signup, etc.)
+- **Data Model:**
+	- `tenants`: Tenant info, unit, meter, and optional link to auth user.
+	- `billing_cycles`: Monthly bills per tenant (readings, rates, balances).
+	- `payments`: Payments toward bills (auto-syncs with billing).
+	- `profiles`: User profile extension (optional).
+	- `communication_logs`: Email/SMS event log (optional).
+- **Business Logic:**
+	- One bill per tenant per month/year (unique).
+	- Payments must be positive.
+	- Balances and paid totals are computed in the database (not the client).
+- **Access Control:**
+	- Admins: Full CRUD via dashboard (service role or admin RLS).
+	- Tenants: Can only see their own data (RLS: tenants.user_id = auth.uid()).
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🖥️ Tech Stack
 
-# Step 3: Install the necessary dependencies.
-npm i
+- **Frontend:** React + TypeScript, Tailwind CSS (dark mode: class)
+- **Backend:** Supabase (Postgres, Auth, RLS)
+- **Tooling:** Supabase CLI (migrations), MCP Supabase server for local tooling
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## 🛠️ Getting Started
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+**Prerequisites:**
+- Node.js 18+
+- Supabase project (get your project ref and anon key)
 
-**Use GitHub Codespaces**
+**Setup:**
+1. Clone the repo
+2. Create `.env.local` with:
+	 ```
+	 VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
+	 VITE_SUPABASE_ANON_KEY=<your-anon-key>
+	 ```
+3. Install dependencies:
+	 ```
+	 npm install
+	 ```
+4. Start the dev server:
+	 ```
+	 npm run dev
+	 ```
+5. Open the app at the printed local URL (e.g., http://localhost:5173)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🗄️ Database Model (Summary)
 
-This project is built with:
+- **tenants**: id, name, phone, email, house_unit_number, meter_connection_number (unique), status, user_id (nullable, FK to auth.users)
+- **billing_cycles**: tenant_id (FK), month, year, readings, rate, previous/current balance, paid_amount (auto), current_balance (auto)
+- **payments**: tenant_id (FK), billing_cycle_id (FK), amount (>0), payment_date, method, notes
+- **RLS**: Tenants can only see their own data; admins have full access
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 📝 Typical Workflows
 
-Simply open [Lovable](https://lovable.dev/projects/63df09b6-0eef-45bc-900d-22e42a5396df) and click on Share -> Publish.
+### Admin
+- Add a tenant (no user_id at creation)
+- Invite tenant (creates auth user, links user_id)
+- Create a bill (unique per tenant/month/year)
+- Record a payment (auto-updates balances)
 
-## Can I connect a custom domain to my Lovable project?
+### Tenant
+- Log in to portal
+- View overview, bills, payments, and profile
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🎨 Theming & Accessibility
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- Uses Tailwind CSS with design tokens: `bg-background`, `text-foreground`, etc.
+- Fully responsive and accessible (keyboard, screen reader friendly)
+- Light/dark mode toggle for all users
+
+---
+
+## 🚢 Deployment
+
+- Deploy frontend to Vercel/Netlify/Render
+- Set environment variables for Supabase URL and anon key
+- Configure Supabase Auth (site URL, email templates, sender domain)
+- Enable backups and RLS in Supabase
+
+---
+
+## 🧩 Extending
+
+- Add payment integrations (M-Pesa, Stripe, etc.)
+- Add PDF receipt generation
+- Add notifications (email/SMS) for due bills
+- Add audit logs for admin actions
+
+---
+
+## 📄 License
+
+Proprietary. All rights reserved.
