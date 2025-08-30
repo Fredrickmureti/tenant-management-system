@@ -1,4 +1,5 @@
-import { useState } from 'react'
+
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +17,65 @@ const TenantAuth = () => {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  // Handle email confirmation on page load
+  useEffect(() => {
+    const handleEmailConfirmation = async () => {
+      const { data, error } = await supabase.auth.getSession()
+      
+      if (data.session && data.session.user) {
+        console.log('User confirmed, checking tenant linkage:', data.session.user.email)
+        
+        // Check if user has tenant record linked
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('tenants')
+          .select('*')
+          .eq('user_id', data.session.user.id)
+          .single()
+
+        if (tenantData) {
+          console.log('Tenant record found, redirecting to dashboard')
+          navigate('/tenant')
+        } else {
+          // Check if there's a tenant record with this email that needs linking
+          const { data: unlinkedTenant, error: unlinkError } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('email', data.session.user.email)
+            .is('user_id', null)
+            .single()
+
+          if (unlinkedTenant) {
+            console.log('Linking user to existing tenant record')
+            const { error: linkError } = await supabase
+              .from('tenants')
+              .update({ user_id: data.session.user.id })
+              .eq('id', unlinkedTenant.id)
+
+            if (!linkError) {
+              console.log('Successfully linked, redirecting to dashboard')
+              navigate('/tenant')
+            } else {
+              console.error('Error linking tenant:', linkError)
+              toast({
+                title: "Account Setup Error",
+                description: "There was an issue setting up your account. Please contact support.",
+                variant: "destructive",
+              })
+            }
+          } else {
+            toast({
+              title: "Account Not Found",
+              description: "No tenant account found for this email. Please contact your administrator.",
+              variant: "destructive",
+            })
+          }
+        }
+      }
+    }
+
+    handleEmailConfirmation()
+  }, [navigate, toast])
 
   const checkTenantAccess = async (userEmail: string) => {
     const { data, error } = await supabase.rpc('check_tenant_access' as any, {
@@ -60,6 +120,12 @@ const TenantAuth = () => {
             description: "Please check your email and click the verification link before signing in.",
             variant: "destructive",
           })
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: "Invalid Credentials",
+            description: "The email or password you entered is incorrect. If you haven't created an account yet, please sign up first.",
+            variant: "destructive",
+          })
         } else {
           toast({
             title: "Error",
@@ -81,12 +147,29 @@ const TenantAuth = () => {
         if (tenantData) {
           navigate('/tenant')
         } else {
-          toast({
-            title: "Account Setup Required",
-            description: "Your account needs to be linked. Please contact your administrator.",
-            variant: "destructive",
-          })
-          await supabase.auth.signOut()
+          // Try to link to existing tenant record
+          const { data: unlinkedTenant } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('email', data.user.email)
+            .is('user_id', null)
+            .single()
+
+          if (unlinkedTenant) {
+            await supabase
+              .from('tenants')
+              .update({ user_id: data.user.id })
+              .eq('id', unlinkedTenant.id)
+            
+            navigate('/tenant')
+          } else {
+            toast({
+              title: "Account Setup Required",
+              description: "Your account needs to be linked. Please contact your administrator.",
+              variant: "destructive",
+            })
+            await supabase.auth.signOut()
+          }
         }
       }
     } catch (error) {
@@ -123,7 +206,7 @@ const TenantAuth = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/tenant`,
+          emailRedirectTo: `${window.location.origin}/tenant-auth`,
           data: {
             role: 'tenant',
             full_name: fullName || tenantAccess.tenant_name
@@ -132,11 +215,20 @@ const TenantAuth = () => {
       })
 
       if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        })
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Account Exists",
+            description: "An account with this email already exists. Please try signing in instead.",
+            variant: "destructive",
+          })
+          setIsSignUp(false)
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          })
+        }
         return
       }
 
