@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,44 +12,79 @@ import { Loader2, DropletIcon } from 'lucide-react'
 const TenantAuth = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  const checkTenantAccess = async (userEmail: string) => {
+    const { data, error } = await supabase.rpc('check_tenant_access', {
+      user_email: userEmail
+    })
+    
+    if (error) {
+      console.error('Error checking tenant access:', error)
+      return null
+    }
+    
+    return data?.[0] || null
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // First check if the email exists in tenants table
+      const tenantAccess = await checkTenantAccess(email)
+      
+      if (!tenantAccess?.has_access) {
+        toast({
+          title: "Access Denied",
+          description: "This email is not registered as a tenant. Please contact your administrator.",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        })
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: "Email Not Verified",
+            description: "Please check your email and click the verification link before signing in.",
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          })
+        }
         return
       }
 
       if (data.user) {
-        // Check if user has tenant role
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('role')
+        // Check if user has tenant record linked
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('*')
           .eq('user_id', data.user.id)
           .single()
 
-        if (profileData?.role === 'tenant') {
+        if (tenantData) {
           navigate('/tenant')
         } else {
           toast({
-            title: "Access Denied",
-            description: "You don't have tenant access. Please contact your administrator.",
+            title: "Account Setup Required",
+            description: "Your account needs to be linked. Please contact your administrator.",
             variant: "destructive",
           })
           await supabase.auth.signOut()
@@ -71,13 +107,27 @@ const TenantAuth = () => {
     setLoading(true)
 
     try {
+      // First check if this email exists in tenants table
+      const tenantAccess = await checkTenantAccess(email)
+      
+      if (!tenantAccess?.has_access) {
+        toast({
+          title: "Registration Not Allowed",
+          description: "This email is not registered as a tenant. Please contact your administrator to add you as a tenant first.",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/tenant`,
           data: {
-            role: 'tenant'
+            role: 'tenant',
+            full_name: fullName || tenantAccess.tenant_name
           }
         }
       })
@@ -94,9 +144,11 @@ const TenantAuth = () => {
       if (data.user) {
         toast({
           title: "Success",
-          description: "Account created! Please check your email to verify your account.",
+          description: "Account created! Please check your email to verify your account, then return here to sign in.",
         })
         setIsSignUp(false)
+        setPassword('')
+        setFullName('')
       }
     } catch (error) {
       console.error('Error signing up:', error)
@@ -149,10 +201,25 @@ const TenantAuth = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={isSignUp ? "Create a password" : "Enter your password"}
                 required
               />
             </div>
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name (Optional)</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your full name"
+                />
+                <p className="text-xs text-muted-foreground">
+                  If left empty, we'll use the name from your tenant record.
+                </p>
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
@@ -168,7 +235,11 @@ const TenantAuth = () => {
           <div className="mt-6 text-center">
             <Button
               variant="link"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp)
+                setPassword('')
+                setFullName('')
+              }}
               className="text-sm"
             >
               {isSignUp 

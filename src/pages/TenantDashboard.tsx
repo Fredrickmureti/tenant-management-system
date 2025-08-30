@@ -14,9 +14,11 @@ import {
   Phone,
   Mail,
   MapPin,
-  User
+  User,
+  LogOut
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 
 type TenantInfo = {
   id: string
@@ -60,13 +62,19 @@ const months = [
 ]
 
 const TenantDashboard = () => {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null)
   const [currentBill, setCurrentBill] = useState<BillingCycle | null>(null)
   const [recentBills, setRecentBills] = useState<BillingCycle[]>([])
   const [recentPayments, setRecentPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/tenant-auth')
+  }
 
   const fetchTenantData = async () => {
     if (!user) return
@@ -152,8 +160,10 @@ const TenantDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchTenantData()
+    } else {
+      navigate('/tenant-auth')
     }
-  }, [user])
+  }, [user, navigate])
 
   if (loading) {
     return (
@@ -170,9 +180,12 @@ const TenantDashboard = () => {
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               You don't have access to any tenant account. Please contact your administrator.
             </p>
+            <Button onClick={handleSignOut} variant="outline">
+              Sign Out
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -185,12 +198,18 @@ const TenantDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center md:text-left">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Welcome, {tenantInfo.name}
-          </h1>
-          <p className="text-gray-600">Unit {tenantInfo.house_unit_number}</p>
+        {/* Header with Sign Out */}
+        <div className="flex justify-between items-start">
+          <div className="text-center md:text-left">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+              Welcome, {tenantInfo.name}
+            </h1>
+            <p className="text-gray-600">Unit {tenantInfo.house_unit_number}</p>
+          </div>
+          <Button onClick={handleSignOut} variant="outline" size="sm">
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
 
         {/* Quick Stats */}
