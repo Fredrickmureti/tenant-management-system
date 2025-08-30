@@ -277,6 +277,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_tenant_access: {
+        Args: { user_email: string }
+        Returns: {
+          has_access: boolean
+          tenant_id: string
+          tenant_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
