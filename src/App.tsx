@@ -14,6 +14,7 @@ import Payments from "./pages/Payments";
 import Communications from "./pages/Communications";
 import TenantDashboard from "./pages/TenantDashboard";
 import TenantAuth from "./pages/TenantAuth";
+import MeterReadings from "./pages/MeterReadings";
 import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="tenants" element={<Tenants />} />
+                <Route path="meter-readings" element={<MeterReadings />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="communications" element={<Communications />} />

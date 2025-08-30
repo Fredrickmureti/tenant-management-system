@@ -39,6 +39,7 @@ const Layout = () => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: BarChart3 },
     { name: 'Tenants', href: '/tenants', icon: Users },
+    { name: 'Meter Readings', href: '/meter-readings', icon: Droplets },
     { name: 'Billing', href: '/billing', icon: Receipt },
     { name: 'Payments', href: '/payments', icon: DollarSign },
     { name: 'Communications', href: '/communications', icon: MessageSquare },

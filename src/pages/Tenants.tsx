@@ -25,6 +25,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { CheckCircle, Loader2, PlusCircle, Pencil, Trash2, X } from "lucide-react"
+import { useToast } from '@/hooks/use-toast'
 
 type Tenant = Tables<'tenants'>
 
@@ -165,6 +166,7 @@ const TenantForm = ({
 };
 
 const Tenants = () => {
+	const { toast } = useToast()
 	const [tenants, setTenants] = useState<Tenant[]>([])
 	const [search, setSearch] = useState('')
 	const [loading, setLoading] = useState(true)
@@ -201,9 +203,34 @@ const Tenants = () => {
 	const handleAddTenant = async (tenantData: TablesInsert<'tenants'>) => {
 		setIsProcessing(true)
 		try {
+			// First create user account if email is provided
+			let userId = null;
+			if (tenantData.email) {
+				const tempPassword = `water${Math.random().toString(36).slice(-8)}`;
+				const { data: authData, error: authError } = await supabase.auth.signUp({
+					email: tenantData.email,
+					password: tempPassword,
+					options: {
+						emailRedirectTo: `${window.location.origin}/tenant-auth`,
+						data: {
+							full_name: tenantData.name,
+							role: 'tenant'
+						}
+					}
+				});
+
+				if (authError) {
+					console.warn('Could not create user account:', authError);
+					// Continue without user account - can be created later
+				} else {
+					userId = authData.user?.id;
+				}
+			}
+
+			// Create tenant record
 			const { data, error } = await supabase
 				.from('tenants')
-				.insert([tenantData])
+				.insert([{ ...tenantData, user_id: userId }])
 				.select()
 				.single()
 			
@@ -217,6 +244,13 @@ const Tenants = () => {
 			
 			// Close the dialog
 			setShowAddDialog(false)
+			
+			toast({
+				title: "Success",
+				description: tenantData.email 
+					? "Tenant added successfully. User account created - they can login with their email."
+					: "Tenant added successfully.",
+			})
 		} catch (err) {
 			console.error('Error creating tenant:', err)
 		} finally {
