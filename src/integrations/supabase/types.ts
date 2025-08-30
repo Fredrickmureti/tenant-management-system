@@ -14,16 +14,241 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      billing_cycles: {
+        Row: {
+          bill_amount: number | null
+          bill_date: string
+          created_at: string
+          current_balance: number | null
+          current_reading: number
+          due_date: string
+          id: string
+          month: number
+          paid_amount: number
+          previous_balance: number
+          previous_reading: number
+          rate_per_unit: number
+          tenant_id: string
+          units_used: number | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          bill_amount?: number | null
+          bill_date?: string
+          created_at?: string
+          current_balance?: number | null
+          current_reading?: number
+          due_date?: string
+          id?: string
+          month: number
+          paid_amount?: number
+          previous_balance?: number
+          previous_reading?: number
+          rate_per_unit?: number
+          tenant_id: string
+          units_used?: number | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          bill_amount?: number | null
+          bill_date?: string
+          created_at?: string
+          current_balance?: number | null
+          current_reading?: number
+          due_date?: string
+          id?: string
+          month?: number
+          paid_amount?: number
+          previous_balance?: number
+          previous_reading?: number
+          rate_per_unit?: number
+          tenant_id?: string
+          units_used?: number | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_cycles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_logs: {
+        Row: {
+          id: string
+          message: string
+          sent_at: string
+          sent_by: string
+          status: string
+          subject: string | null
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          sent_at?: string
+          sent_by: string
+          status?: string
+          subject?: string | null
+          tenant_id: string
+          type: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          sent_at?: string
+          sent_by?: string
+          status?: string
+          subject?: string | null
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          billing_cycle_id: string
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          billing_cycle_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          billing_cycle_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_billing_cycle_id_fkey"
+            columns: ["billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "billing_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          email: string | null
+          house_unit_number: string
+          id: string
+          meter_connection_number: string
+          name: string
+          phone: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          house_unit_number: string
+          id?: string
+          meter_connection_number: string
+          name: string
+          phone: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          house_unit_number?: string
+          id?: string
+          meter_connection_number?: string
+          name?: string
+          phone?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "clerk"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +375,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "clerk"],
+    },
   },
 } as const
