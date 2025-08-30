@@ -188,12 +188,22 @@ const Tenants = () => {
 			
 			if (error) {
 				console.error('Error fetching tenants:', error)
+				toast({
+					title: "Error",
+					description: "Failed to load tenants. Please try again.",
+					variant: "destructive"
+				})
 				return
 			}
 			
 			setTenants(data || [])
 		} catch (err) {
 			console.error('Error fetching tenants:', err)
+			toast({
+				title: "Error",
+				description: "An unexpected error occurred while loading tenants.",
+				variant: "destructive"
+			})
 		} finally {
 			setLoading(false)
 		}
@@ -202,32 +212,42 @@ const Tenants = () => {
 	// Function to handle creating a new tenant
 	const handleAddTenant = async (tenantData: TablesInsert<'tenants'>) => {
 		setIsProcessing(true)
+		let userCreationSuccess = false
+		let userCreationMessage = ""
+		
 		try {
-			// First create user account if email is provided
+			// Attempt to create user account if email is provided
 			let userId = null;
 			if (tenantData.email) {
-				const tempPassword = `water${Math.random().toString(36).slice(-8)}`;
-				const { data: authData, error: authError } = await supabase.auth.signUp({
-					email: tenantData.email,
-					password: tempPassword,
-					options: {
-						emailRedirectTo: `${window.location.origin}/tenant-auth`,
-						data: {
-							full_name: tenantData.name,
-							role: 'tenant'
+				try {
+					const tempPassword = `water${Math.random().toString(36).slice(-8)}`;
+					const { data: authData, error: authError } = await supabase.auth.signUp({
+						email: tenantData.email,
+						password: tempPassword,
+						options: {
+							emailRedirectTo: `${window.location.origin}/tenant-auth`,
+							data: {
+								full_name: tenantData.name,
+								role: 'tenant'
+							}
 						}
-					}
-				});
+					});
 
-				if (authError) {
-					console.warn('Could not create user account:', authError);
-					// Continue without user account - can be created later
-				} else {
-					userId = authData.user?.id;
+					if (authError) {
+						console.warn('Could not create user account:', authError);
+						userCreationMessage = "User account could not be created, but tenant record will be saved.";
+					} else if (authData.user) {
+						userId = authData.user.id;
+						userCreationSuccess = true;
+						userCreationMessage = "User account created successfully.";
+					}
+				} catch (userError) {
+					console.warn('Error during user creation:', userError);
+					userCreationMessage = "User account creation failed, but tenant record will be saved.";
 				}
 			}
 
-			// Create tenant record
+			// Create tenant record (this should now work even if userId is null)
 			const { data, error } = await supabase
 				.from('tenants')
 				.insert([{ ...tenantData, user_id: userId }])
@@ -236,6 +256,11 @@ const Tenants = () => {
 			
 			if (error) {
 				console.error('Error creating tenant:', error)
+				toast({
+					title: "Error",
+					description: `Failed to create tenant: ${error.message}`,
+					variant: "destructive"
+				})
 				return
 			}
 			
@@ -245,14 +270,24 @@ const Tenants = () => {
 			// Close the dialog
 			setShowAddDialog(false)
 			
+			// Show success message with user creation status
+			let successMessage = "Tenant added successfully.";
+			if (tenantData.email) {
+				successMessage += ` ${userCreationMessage}`;
+			}
+			
 			toast({
 				title: "Success",
-				description: tenantData.email 
-					? "Tenant added successfully. User account created - they can login with their email."
-					: "Tenant added successfully.",
+				description: successMessage,
+				variant: userCreationSuccess ? "default" : "default"
 			})
 		} catch (err) {
 			console.error('Error creating tenant:', err)
+			toast({
+				title: "Error",
+				description: "An unexpected error occurred while creating the tenant.",
+				variant: "destructive"
+			})
 		} finally {
 			setIsProcessing(false)
 		}
@@ -273,6 +308,11 @@ const Tenants = () => {
 			
 			if (error) {
 				console.error('Error updating tenant:', error)
+				toast({
+					title: "Error",
+					description: `Failed to update tenant: ${error.message}`,
+					variant: "destructive"
+				})
 				return
 			}
 			
@@ -281,8 +321,18 @@ const Tenants = () => {
 			
 			// Close the dialog and reset the editing state
 			setEditingTenant(undefined)
+			
+			toast({
+				title: "Success",
+				description: "Tenant updated successfully.",
+			})
 		} catch (err) {
 			console.error('Error updating tenant:', err)
+			toast({
+				title: "Error",
+				description: "An unexpected error occurred while updating the tenant.",
+				variant: "destructive"
+			})
 		} finally {
 			setIsProcessing(false)
 		}
@@ -298,13 +348,28 @@ const Tenants = () => {
 			
 			if (error) {
 				console.error('Error deleting tenant:', error)
+				toast({
+					title: "Error",
+					description: `Failed to delete tenant: ${error.message}`,
+					variant: "destructive"
+				})
 				return
 			}
 			
 			// Remove the tenant from the array
 			setTenants(prev => prev.filter(t => t.id !== id))
+			
+			toast({
+				title: "Success",
+				description: "Tenant deleted successfully.",
+			})
 		} catch (err) {
 			console.error('Error deleting tenant:', err)
+			toast({
+				title: "Error",
+				description: "An unexpected error occurred while deleting the tenant.",
+				variant: "destructive"
+			})
 		}
 	}
 	
