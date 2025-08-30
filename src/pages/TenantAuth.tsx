@@ -24,29 +24,40 @@ const TenantAuth = () => {
   // Handle email confirmation on page load
   useEffect(() => {
     const handleEmailConfirmation = async () => {
-      const { data, error } = await supabase.auth.getSession()
-      
-      if (data.session && data.session.user) {
-        console.log('User confirmed, checking tenant linkage:', data.session.user.email)
+      try {
+        const { data, error } = await supabase.auth.getSession()
         
-        // Check if user has tenant record linked
-        const { data: tenantData, error: tenantError } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('user_id', data.session.user.id)
-          .single()
+        if (data.session && data.session.user) {
+          console.log('User confirmed, checking tenant linkage:', data.session.user.email)
+          
+          // Check if user has tenant record linked
+          const { data: tenantData, error: tenantError } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('user_id', data.session.user.id)
+            .maybeSingle()
 
-        if (tenantData) {
-          console.log('Tenant record found, redirecting to dashboard')
-          navigate('/tenant')
-        } else {
+          if (tenantError) {
+            console.error('Error checking tenant linkage:', tenantError)
+          }
+
+          if (tenantData) {
+            console.log('Tenant record found, redirecting to dashboard')
+            navigate('/tenant')
+            return
+          }
+
           // Check if there's a tenant record with this email that needs linking
           const { data: unlinkedTenant, error: unlinkError } = await supabase
             .from('tenants')
             .select('*')
             .eq('email', data.session.user.email)
             .is('user_id', null)
-            .single()
+            .maybeSingle()
+
+          if (unlinkError) {
+            console.error('Error checking unlinked tenant:', unlinkError)
+          }
 
           if (unlinkedTenant) {
             console.log('Linking user to existing tenant record')
@@ -74,6 +85,13 @@ const TenantAuth = () => {
             })
           }
         }
+      } catch (error) {
+        console.error('Error during email confirmation:', error)
+        toast({
+          title: "Error",
+          description: "An error occurred while setting up your account.",
+          variant: "destructive",
+        })
       }
     }
 
@@ -252,30 +270,48 @@ const TenantAuth = () => {
 
       if (data.user) {
         // Check if user has tenant record linked
-        const { data: tenantData } = await supabase
+        const { data: tenantData, error: tenantError } = await supabase
           .from('tenants')
           .select('*')
           .eq('user_id', data.user.id)
-          .single()
+          .maybeSingle()
+
+        if (tenantError) {
+          console.error('Error checking tenant linkage:', tenantError)
+        }
 
         if (tenantData) {
           navigate('/tenant')
         } else {
           // Try to link to existing tenant record
-          const { data: unlinkedTenant } = await supabase
+          const { data: unlinkedTenant, error: unlinkError } = await supabase
             .from('tenants')
             .select('*')
             .eq('email', data.user.email)
             .is('user_id', null)
-            .single()
+            .maybeSingle()
+
+          if (unlinkError) {
+            console.error('Error checking unlinked tenant:', unlinkError)
+          }
 
           if (unlinkedTenant) {
-            await supabase
+            const { error: updateError } = await supabase
               .from('tenants')
               .update({ user_id: data.user.id })
               .eq('id', unlinkedTenant.id)
             
-            navigate('/tenant')
+            if (!updateError) {
+              navigate('/tenant')
+            } else {
+              console.error('Error linking tenant:', updateError)
+              toast({
+                title: "Account Setup Error",
+                description: "There was an issue linking your account. Please contact support.",
+                variant: "destructive",
+              })
+              await supabase.auth.signOut()
+            }
           } else {
             toast({
               title: "Account Setup Required",
