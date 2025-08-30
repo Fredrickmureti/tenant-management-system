@@ -1,1 +1,10 @@
 project_id = "lwseavuepbcgqthnwpjb"
+
+[functions.send-communication]
+verify_jwt = true
+
+[functions.generate-receipt]
+verify_jwt = true
+
+[functions.process-scheduled-messages]
+verify_jwt = false
