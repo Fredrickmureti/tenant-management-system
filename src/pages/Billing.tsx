@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 // Define type for billing cycle records
 type Billing = {
@@ -237,6 +238,7 @@ const BillingForm = ({
 };
 
 const Billing = () => {
+	const { toast } = useToast();
 	const now = new Date()
 	const [year, setYear] = useState(now.getFullYear())
 	const [month, setMonth] = useState(now.getMonth() + 1)
@@ -331,18 +333,38 @@ const Billing = () => {
 		
 		setIsProcessing(true);
 		try {
-			// Do not allow manual updates to paid_amount; it's derived from payments
-			// Also remove tenant object and other non-database fields
-			const { paid_amount, tenant, ...rest } = billData as any;
+			// Filter out generated columns and non-database fields
+			const { 
+				paid_amount, 
+				tenant, 
+				units_used, 
+				bill_amount, 
+				current_balance,
+				id,
+				created_at,
+				updated_at,
+				...updateData 
+			} = billData as any;
+
 			const { error } = await supabase
 				.from('billing_cycles')
-				.update(rest)
+				.update(updateData)
 				.eq('id', editingBill.id);
 			
 			if (error) {
 				console.error('Error updating bill:', error);
+				toast({
+					title: "Error",
+					description: "Failed to update bill. Please try again.",
+					variant: "destructive",
+				});
 				return;
 			}
+			
+			toast({
+				title: "Success",
+				description: "Bill updated successfully.",
+			});
 			
 			// Refresh data
 			await fetchData();
@@ -351,6 +373,11 @@ const Billing = () => {
 			setEditingBill(undefined);
 		} catch (err) {
 			console.error('Error updating bill:', err);
+			toast({
+				title: "Error", 
+				description: "An unexpected error occurred while updating the bill.",
+				variant: "destructive",
+			});
 		} finally {
 			setIsProcessing(false);
 		}
