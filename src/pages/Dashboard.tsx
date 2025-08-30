@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, Receipt, DollarSign, AlertTriangle } from 'lucide-react';
+import { formatKES } from '@/lib/utils';
 
 interface DashboardStats {
   totalTenants: number;
@@ -93,19 +94,19 @@ const Dashboard = () => {
     },
     {
       title: 'Billed This Month',
-      value: `₹${stats.totalBilledThisMonth.toLocaleString()}`,
+      value: formatKES(stats.totalBilledThisMonth),
       icon: Receipt,
       color: 'text-green-600',
     },
     {
       title: 'Total Paid',
-      value: `₹${stats.totalPaid.toLocaleString()}`,
+      value: formatKES(stats.totalPaid),
       icon: DollarSign,
       color: 'text-emerald-600',
     },
     {
       title: 'Outstanding',
-      value: `₹${stats.totalOutstanding.toLocaleString()}`,
+      value: formatKES(stats.totalOutstanding),
       icon: AlertTriangle,
       color: 'text-red-600',
     },
@@ -116,10 +117,10 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
-          {new Date().toLocaleDateString('en-IN', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+          {new Date().toLocaleDateString('en-KE', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
           })}
         </p>
       </div>
@@ -129,13 +130,13 @@ const Dashboard = () => {
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title}>
+            <Card key={stat.title} className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
                 <Icon className={`h-4 w-4 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-3xl font-bold tracking-tight">{stat.value}</div>
               </CardContent>
             </Card>
           );
@@ -144,7 +145,7 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+    <Card className="hover:shadow-sm">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
@@ -158,12 +159,12 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+    <Card className="hover:shadow-sm">
           <CardHeader>
             <CardTitle>Collection Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+      <div className="text-3xl font-bold tracking-tight">
               {stats.totalBilledThisMonth > 0 
                 ? `${Math.round((stats.totalPaid / stats.totalBilledThisMonth) * 100)}%`
                 : '0%'
@@ -173,7 +174,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+    <Card className="hover:shadow-sm">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
