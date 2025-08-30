@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -19,7 +18,7 @@ const TenantAuth = () => {
   const navigate = useNavigate()
 
   const checkTenantAccess = async (userEmail: string) => {
-    const { data, error } = await supabase.rpc('check_tenant_access', {
+    const { data, error } = await supabase.rpc('check_tenant_access' as any, {
       user_email: userEmail
     })
     
