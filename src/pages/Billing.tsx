@@ -332,7 +332,8 @@ const Billing = () => {
 		setIsProcessing(true);
 		try {
 			// Do not allow manual updates to paid_amount; it's derived from payments
-			const { paid_amount, ...rest } = billData as any;
+			// Also remove tenant object and other non-database fields
+			const { paid_amount, tenant, ...rest } = billData as any;
 			const { error } = await supabase
 				.from('billing_cycles')
 				.update(rest)
