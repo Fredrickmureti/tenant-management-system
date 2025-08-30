@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { ExportButton } from '@/components/ExportButton'
+import { formatBillingDataForExport } from '@/lib/export-utils'
 
 // Define type for billing cycle records
 type Billing = {
@@ -430,6 +432,12 @@ const Billing = () => {
 						</SelectContent>
 					</Select>
 					<Input placeholder="Search by tenant" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full sm:w-64" />
+					<ExportButton 
+						data={filtered}
+						filename={`billing-${months[month - 1]}-${year}`}
+						formatData={formatBillingDataForExport}
+						disabled={loading}
+					/>
 					<Button onClick={() => setShowAddDialog(true)}>
 						<PlusCircle className="h-4 w-4 mr-2" />
 						New Bill

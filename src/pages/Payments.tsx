@@ -25,7 +25,9 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react'
+import { Loader2, PlusCircle, Pencil, Trash2, CalendarIcon } from 'lucide-react'
+import { ExportButton } from '@/components/ExportButton'
+import { formatPaymentDataForExport } from '@/lib/export-utils'
 
 type Payment = {
 	id: string
@@ -394,14 +396,22 @@ const Payments = () => {
 	const [editingPayment, setEditingPayment] = useState<(Payment & { tenant: Tenant | null }) | undefined>(undefined)
 	const [allTenants, setAllTenants] = useState<Tenant[]>([])
 	const [query, setQuery] = useState('')
+	const [startDate, setStartDate] = useState('')
+	const [endDate, setEndDate] = useState('')
 	const { toast } = useToast()
 	
-	// Filter payments based on search query
-	const filtered = rows.filter(r => 
-		`${r.tenant?.name || ''} ${r.payment_method || ''} ${r.notes || ''}`
+	// Filter payments based on search query and date range
+	const filtered = rows.filter(r => {
+		const matchesSearch = `${r.tenant?.name || ''} ${r.payment_method || ''} ${r.notes || ''}`
 			.toLowerCase()
-			.includes(query.toLowerCase())
-	);
+			.includes(query.toLowerCase());
+		
+		const paymentDate = new Date(r.payment_date);
+		const matchesDateRange = (!startDate || paymentDate >= new Date(startDate)) &&
+			(!endDate || paymentDate <= new Date(endDate));
+		
+		return matchesSearch && matchesDateRange;
+	});
 	
 	// Function to create a new payment record
 	const handleAddPayment = async (paymentData: Partial<Payment>) => {
@@ -616,12 +626,36 @@ const Payments = () => {
 		<div className="space-y-6">
 			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 				<h1 className="text-3xl font-bold">Payments</h1>
-				<div className="flex gap-2">
+				<div className="flex flex-wrap gap-2 items-center">
 					<Input
 						placeholder="Search payments..."
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
-						className="w-full sm:w-72"
+						className="w-full sm:w-48"
+					/>
+					<div className="flex gap-2 items-center">
+						<CalendarIcon className="h-4 w-4" />
+						<Input
+							type="date"
+							placeholder="Start date"
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="w-36"
+						/>
+						<span className="text-muted-foreground">to</span>
+						<Input
+							type="date"
+							placeholder="End date"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="w-36"
+						/>
+					</div>
+					<ExportButton 
+						data={filtered}
+						filename="payments"
+						formatData={formatPaymentDataForExport}
+						disabled={loading}
 					/>
 					<Button onClick={() => setShowAddDialog(true)}>
 						<PlusCircle className="h-4 w-4 mr-2" />

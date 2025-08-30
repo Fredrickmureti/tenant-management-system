@@ -12,6 +12,8 @@ import { CalendarIcon, Mail, MessageSquare, Receipt, Clock, Send } from 'lucide-
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import type { Tables } from '@/integrations/supabase/types'
+import { ExportButton } from '@/components/ExportButton'
+import { formatCommunicationDataForExport } from '@/lib/export-utils'
 
 type Log = Tables<'communication_logs'>
 type Tenant = { id: string; name: string; email?: string | null; phone: string }
@@ -36,6 +38,9 @@ const Communications = () => {
 	const [loading, setLoading] = useState(true)
 	const [sending, setSending] = useState(false)
 	const [isDialogOpen, setIsDialogOpen] = useState(false)
+	const [startDate, setStartDate] = useState('')
+	const [endDate, setEndDate] = useState('')
+	const [query, setQuery] = useState('')
 	const { toast } = useToast()
 
 	const [commForm, setCommForm] = useState<CommunicationForm>({
@@ -185,10 +190,56 @@ const Communications = () => {
 
 	const selectedTenant = tenants.find(t => t.id === commForm.recipient)
 
+	// Filter communications based on search and date range
+	const filtered = rows.filter(r => {
+		const matchesSearch = `${r.tenant?.name || ''} ${r.subject || ''} ${r.message}`
+			.toLowerCase()
+			.includes(query.toLowerCase());
+		
+		const sentDate = new Date(r.sent_at);
+		const matchesDateRange = (!startDate || sentDate >= new Date(startDate)) &&
+			(!endDate || sentDate <= new Date(endDate));
+		
+		return matchesSearch && matchesDateRange;
+	});
+
 	return (
 		<div className="space-y-6">
-			<div className="flex justify-between items-center">
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 				<h1 className="text-3xl font-bold">Communications</h1>
+				
+				<div className="flex flex-wrap gap-2 items-center">
+					<Input
+						placeholder="Search messages..."
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+						className="w-full sm:w-48"
+					/>
+					<div className="flex gap-2 items-center">
+						<CalendarIcon className="h-4 w-4" />
+						<Input
+							type="date"
+							placeholder="Start date"
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="w-36"
+						/>
+						<span className="text-muted-foreground">to</span>
+						<Input
+							type="date"
+							placeholder="End date"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="w-36"
+						/>
+					</div>
+					<ExportButton 
+						data={filtered}
+						filename="communications"
+						formatData={formatCommunicationDataForExport}
+						disabled={loading}
+					/>
+				</div>
 				
 				<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 					<DialogTrigger asChild>
@@ -353,7 +404,7 @@ const Communications = () => {
 						<div className="py-10 text-center text-muted-foreground">No messages</div>
 					) : (
 						<div className="space-y-4">
-							{rows.map((r) => (
+							{filtered.map((r) => (
 								<div key={r.id} className="border rounded-md p-4">
 									<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
 										<div className="flex items-center gap-2">

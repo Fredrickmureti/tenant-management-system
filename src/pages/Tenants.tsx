@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { CheckCircle, Loader2, PlusCircle, Pencil, Trash2, X } from "lucide-react"
 import { useToast } from '@/hooks/use-toast'
+import { ExportButton } from '@/components/ExportButton'
+import { ImportTenants } from '@/components/ImportTenants'
+import { formatTenantDataForExport } from '@/lib/export-utils'
 
 type Tenant = Tables<'tenants'>
 
@@ -391,6 +394,13 @@ const Tenants = () => {
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						className="w-full sm:w-72"
+					/>
+					<ImportTenants onImportComplete={fetchTenants} />
+					<ExportButton 
+						data={filtered}
+						filename="tenants"
+						formatData={formatTenantDataForExport}
+						disabled={loading}
 					/>
 					<Button onClick={() => setShowAddDialog(true)}>
 						<PlusCircle className="h-4 w-4 mr-2" />

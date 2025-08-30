@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatKES } from '@/lib/utils';
 import { Plus, Gauge } from 'lucide-react';
+import { ExportButton } from '@/components/ExportButton';
+import { formatMeterReadingDataForExport } from '@/lib/export-utils';
 
 type Tenant = {
   id: string;
@@ -187,13 +189,20 @@ const MeterReadings = () => {
             {months[currentMonth - 1]} {currentYear}
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Record Reading
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <ExportButton 
+            data={readings}
+            filename={`meter-readings-${months[currentMonth - 1]}-${currentYear}`}
+            formatData={formatMeterReadingDataForExport}
+            disabled={loading}
+          />
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Record Reading
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Record Meter Reading</DialogTitle>
@@ -237,6 +246,7 @@ const MeterReadings = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Summary Cards */}
