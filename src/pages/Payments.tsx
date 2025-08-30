@@ -6,24 +6,25 @@ import { Button } from '@/components/ui/button'
 import { supabase } from '@/integrations/supabase/client'
 import { formatKES } from '@/lib/utils'
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+	Dialog, 
+	DialogContent, 
+	DialogDescription, 
+	DialogFooter, 
+	DialogHeader, 
+	DialogTitle 
 } from "@/components/ui/dialog"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 import { Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react'
 
 type Payment = {
@@ -63,6 +64,13 @@ const PaymentForm = ({
 		}
 	);
 	
+	const [currentBillInfo, setCurrentBillInfo] = useState<{
+		bill_amount: number;
+		paid_amount: number;
+		current_balance: number;
+		previous_balance: number;
+	} | null>(null);
+	
 	const [availableBillingCycles, setAvailableBillingCycles] = useState<BillingCycle[]>([]);
 	const [loadingBillingCycles, setLoadingBillingCycles] = useState(false);
 
@@ -75,7 +83,7 @@ const PaymentForm = ({
 			// First, check if any billing cycles exist for this tenant
 			const { data: allCycles, error: checkError } = await supabase
 				.from('billing_cycles')
-				.select('id, month, year, current_balance')
+				.select('id, month, year, current_balance, bill_amount, paid_amount, previous_balance')
 				.eq('tenant_id', tenant_id);
 				
 			if (checkError) {
@@ -88,7 +96,7 @@ const PaymentForm = ({
 			// Now fetch only those with outstanding balance
 			const { data, error } = await supabase
 				.from('billing_cycles')
-				.select('id, month, year, current_balance')
+				.select('id, month, year, current_balance, bill_amount, paid_amount, previous_balance')
 				.eq('tenant_id', tenant_id)
 				.gt('current_balance', 0) // Only show bills with outstanding balance
 				.order('year', { ascending: false })
@@ -109,15 +117,46 @@ const PaymentForm = ({
 		}
 	};
 
+	// Fetch current bill info when billing cycle is selected
+	const fetchBillInfo = async (billing_cycle_id: string) => {
+		if (!billing_cycle_id) {
+			setCurrentBillInfo(null);
+			return;
+		}
+		
+		try {
+			const { data, error } = await supabase
+				.from('billing_cycles')
+				.select('bill_amount, paid_amount, current_balance, previous_balance')
+				.eq('id', billing_cycle_id)
+				.single();
+				
+			if (error) {
+				console.error('Error fetching bill info:', error);
+				return;
+			}
+			
+			setCurrentBillInfo(data);
+		} catch (error) {
+			console.error('Error fetching bill info:', error);
+		}
+	};
+
 	useEffect(() => {
 		if (formData.tenant_id) {
 			fetchBillingCycles(formData.tenant_id);
 		}
 	}, [formData.tenant_id]);
 
+	useEffect(() => {
+		if (formData.billing_cycle_id) {
+			fetchBillInfo(formData.billing_cycle_id);
+		}
+	}, [formData.billing_cycle_id]);
+
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
 		const { name, value } = e.target;
-		setFormData(prev => ({ ...prev, [name]: name === 'amount' ? parseFloat(value) : value }));
+		setFormData(prev => ({ ...prev, [name]: name === 'amount' ? parseFloat(value) || 0 : value }));
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -128,9 +167,13 @@ const PaymentForm = ({
 	return (
 		<form onSubmit={handleSubmit} className="space-y-4">
 			<div className="grid gap-4">
-				{!isEditing && (
-					<div className="space-y-2">
-						<Label htmlFor="tenant_id">Select Tenant</Label>
+				<div className="space-y-2">
+					<Label htmlFor="tenant_id">Select Tenant</Label>
+					{isEditing ? (
+						<div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm">
+							{payment?.tenant?.name || 'Unknown Tenant'} - Unit {payment?.tenant?.house_unit_number || 'N/A'}
+						</div>
+					) : (
 						<select
 							id="tenant_id"
 							name="tenant_id"
@@ -138,7 +181,6 @@ const PaymentForm = ({
 							onChange={handleChange}
 							className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 							required
-							disabled={isEditing}
 						>
 							<option value="">Select a tenant</option>
 							{tenants.map(tenant => (
@@ -147,13 +189,13 @@ const PaymentForm = ({
 								</option>
 							))}
 						</select>
-					</div>
-				)}
+					)}
+				</div>
 
-				{!isEditing && (
-					<div className="space-y-2">
-						<div className="flex justify-between items-center">
-							<Label htmlFor="billing_cycle_id">Select Bill</Label>
+				<div className="space-y-2">
+					<div className="flex justify-between items-center">
+						<Label htmlFor="billing_cycle_id">Select Bill</Label>
+						{!isEditing && (
 							<div className="flex items-center gap-2">
 								<input
 									type="checkbox"
@@ -167,7 +209,7 @@ const PaymentForm = ({
 													try {
 														const { data } = await supabase
 															.from('billing_cycles')
-															.select('id, month, year, current_balance')
+															.select('id, month, year, current_balance, bill_amount, paid_amount, previous_balance')
 															.eq('tenant_id', formData.tenant_id)
 															.order('year', { ascending: false })
 															.order('month', { ascending: false });
@@ -190,7 +232,14 @@ const PaymentForm = ({
 								/>
 								<label htmlFor="show_all_bills" className="text-xs">Show all bills</label>
 							</div>
+						)}
+					</div>
+					{isEditing ? (
+						<div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm">
+							{/* Show billing cycle info for editing */}
+							Billing period from payment record
 						</div>
+					) : (
 						<select
 							id="billing_cycle_id"
 							name="billing_cycle_id"
@@ -210,13 +259,47 @@ const PaymentForm = ({
 								</option>
 							))}
 						</select>
-						{formData.tenant_id && availableBillingCycles.length === 0 && !loadingBillingCycles && (
-							<div className="mt-2 p-3 rounded bg-muted/50">
-								<p className="text-sm font-medium">No bills found for this tenant</p>
-								<p className="text-xs text-muted-foreground">
-									You need to create a billing cycle for this tenant before recording payments.
-									Go to the Billing page to create a new billing cycle.
-								</p>
+					)}
+					{!isEditing && formData.tenant_id && availableBillingCycles.length === 0 && !loadingBillingCycles && (
+						<div className="mt-2 p-3 rounded bg-muted/50">
+							<p className="text-sm font-medium">No bills found for this tenant</p>
+							<p className="text-xs text-muted-foreground">
+								You need to create a billing cycle for this tenant before recording payments.
+								Go to the Billing page to create a new billing cycle.
+							</p>
+						</div>
+					)}
+				</div>
+
+				{/* Show current bill details when editing or when bill is selected */}
+				{(isEditing || currentBillInfo) && (
+					<div className="p-4 bg-muted/50 rounded-lg space-y-2">
+						<h4 className="font-medium">Current Bill Information</h4>
+						{currentBillInfo && (
+							<div className="grid grid-cols-2 gap-4 text-sm">
+								<div>
+									<span className="text-muted-foreground">Bill Amount:</span>
+									<div className="font-medium">{formatKES(currentBillInfo.bill_amount || 0)}</div>
+								</div>
+								<div>
+									<span className="text-muted-foreground">Previous Balance:</span>
+									<div className="font-medium">{formatKES(currentBillInfo.previous_balance || 0)}</div>
+								</div>
+								<div>
+									<span className="text-muted-foreground">Total Due:</span>
+									<div className="font-medium">{formatKES((currentBillInfo.bill_amount || 0) + (currentBillInfo.previous_balance || 0))}</div>
+								</div>
+								<div>
+									<span className="text-muted-foreground">Paid So Far:</span>
+									<div className="font-medium">{formatKES(currentBillInfo.paid_amount || 0)}</div>
+								</div>
+								<div className="col-span-2">
+									<span className="text-muted-foreground">Outstanding Balance:</span>
+									<div className={`font-medium ${(currentBillInfo.current_balance || 0) < 0 ? 'text-green-600' : 'text-red-600'}`}>
+										{formatKES(currentBillInfo.current_balance || 0)}
+										{(currentBillInfo.current_balance || 0) < 0 && ' (Credit)'}
+									</div>
+								</div>
 							</div>
 						)}
 					</div>
@@ -229,10 +312,20 @@ const PaymentForm = ({
 						name="amount"
 						type="number"
 						step="0.01"
+						min="0.01"
 						value={formData.amount || ''}
 						onChange={handleChange}
 						required
+						placeholder="Enter payment amount"
 					/>
+					{currentBillInfo && formData.amount && (
+						<div className="text-xs text-muted-foreground">
+							{formData.amount > currentBillInfo.current_balance 
+								? `Overpayment of ${formatKES(formData.amount - currentBillInfo.current_balance)} will be credited to account`
+								: `Remaining balance after payment: ${formatKES(currentBillInfo.current_balance - formData.amount)}`
+							}
+						</div>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -301,6 +394,7 @@ const Payments = () => {
 	const [editingPayment, setEditingPayment] = useState<(Payment & { tenant: Tenant | null }) | undefined>(undefined)
 	const [allTenants, setAllTenants] = useState<Tenant[]>([])
 	const [query, setQuery] = useState('')
+	const { toast } = useToast()
 	
 	// Filter payments based on search query
 	const filtered = rows.filter(r => 
@@ -312,7 +406,20 @@ const Payments = () => {
 	// Function to create a new payment record
 	const handleAddPayment = async (paymentData: Partial<Payment>) => {
 		if (!paymentData.tenant_id || !paymentData.billing_cycle_id || !paymentData.amount || !paymentData.payment_date) {
-			console.error('Missing required payment fields');
+			toast({
+				title: "Validation Error",
+				description: "Please fill in all required fields",
+				variant: "destructive"
+			});
+			return;
+		}
+		
+		if (paymentData.amount <= 0) {
+			toast({
+				title: "Invalid Amount",
+				description: "Payment amount must be greater than 0",
+				variant: "destructive"
+			});
 			return;
 		}
 		
@@ -322,7 +429,11 @@ const Payments = () => {
 			const userData = await supabase.auth.getUser();
 			const created_by = userData.data.user?.id || '';
 			if (!created_by) {
-				console.error('You must be logged in to record a payment.');
+				toast({
+					title: "Authentication Error",
+					description: "You must be logged in to record a payment",
+					variant: "destructive"
+				});
 				setIsProcessing(false);
 				return;
 			}
@@ -345,10 +456,18 @@ const Payments = () => {
 			
 			if (error) {
 				console.error('Error creating payment:', error);
+				toast({
+					title: "Error",
+					description: "Failed to record payment. Please try again.",
+					variant: "destructive"
+				});
 				return;
 			}
 			
-			// No manual balance updates here; database triggers keep paid_amount/current_balance in sync
+			toast({
+				title: "Success",
+				description: `Payment of ${formatKES(paymentData.amount)} recorded successfully`
+			});
 			
 			// Refresh data to show the new payment
 			await fetchData();
@@ -357,6 +476,11 @@ const Payments = () => {
 			setShowAddDialog(false);
 		} catch (err) {
 			console.error('Error creating payment:', err);
+			toast({
+				title: "Error",
+				description: "An unexpected error occurred",
+				variant: "destructive"
+			});
 		} finally {
 			setIsProcessing(false);
 		}
@@ -366,17 +490,41 @@ const Payments = () => {
 	const handleUpdatePayment = async (paymentData: Partial<Payment>) => {
 		if (!editingPayment?.id) return;
 		
+		if (!paymentData.amount || paymentData.amount <= 0) {
+			toast({
+				title: "Invalid Amount",
+				description: "Payment amount must be greater than 0",
+				variant: "destructive"
+			});
+			return;
+		}
+		
 		setIsProcessing(true);
 		try {
 			const { error } = await supabase
 				.from('payments')
-				.update(paymentData)
+				.update({
+					amount: paymentData.amount,
+					payment_date: paymentData.payment_date,
+					payment_method: paymentData.payment_method,
+					notes: paymentData.notes
+				})
 				.eq('id', editingPayment.id);
 			
 			if (error) {
 				console.error('Error updating payment:', error);
+				toast({
+					title: "Error",
+					description: "Failed to update payment. Please try again.",
+					variant: "destructive"
+				});
 				return;
 			}
+			
+			toast({
+				title: "Success",
+				description: "Payment updated successfully"
+			});
 			
 			// Refresh data
 			await fetchData();
@@ -385,6 +533,11 @@ const Payments = () => {
 			setEditingPayment(undefined);
 		} catch (err) {
 			console.error('Error updating payment:', err);
+			toast({
+				title: "Error",
+				description: "An unexpected error occurred",
+				variant: "destructive"
+			});
 		} finally {
 			setIsProcessing(false);
 		}
@@ -400,13 +553,28 @@ const Payments = () => {
 			
 			if (error) {
 				console.error('Error deleting payment:', error);
+				toast({
+					title: "Error",
+					description: "Failed to delete payment. Please try again.",
+					variant: "destructive"
+				});
 				return;
 			}
+			
+			toast({
+				title: "Success",
+				description: "Payment deleted successfully"
+			});
 			
 			// Refresh data
 			await fetchData();
 		} catch (err) {
 			console.error('Error deleting payment:', err);
+			toast({
+				title: "Error",
+				description: "An unexpected error occurred",
+				variant: "destructive"
+			});
 		}
 	};
 	
