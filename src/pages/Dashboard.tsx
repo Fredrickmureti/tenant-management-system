@@ -114,9 +114,9 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           {new Date().toLocaleDateString('en-KE', {
             year: 'numeric',
             month: 'long',
@@ -126,7 +126,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -136,7 +136,7 @@ const Dashboard = () => {
                 <Icon className={`h-4 w-4 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold tracking-tight">{stat.value}</div>
+                <div className="text-2xl sm:text-3xl font-bold tracking-tight">{stat.value}</div>
               </CardContent>
             </Card>
           );
@@ -144,13 +144,13 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-    <Card className="hover:shadow-sm">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="hover:shadow-sm">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {stats.defaultersCount > 0 
                 ? `${stats.defaultersCount} tenant(s) have outstanding balances`
                 : 'All tenants are up to date with payments'
@@ -159,22 +159,22 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-    <Card className="hover:shadow-sm">
+        <Card className="hover:shadow-sm">
           <CardHeader>
             <CardTitle>Collection Rate</CardTitle>
           </CardHeader>
           <CardContent>
-      <div className="text-3xl font-bold tracking-tight">
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight">
               {stats.totalBilledThisMonth > 0 
                 ? `${Math.round((stats.totalPaid / stats.totalBilledThisMonth) * 100)}%`
                 : '0%'
               }
             </div>
-            <p className="text-muted-foreground">This month</p>
+            <p className="text-sm text-muted-foreground">This month</p>
           </CardContent>
         </Card>
 
-    <Card className="hover:shadow-sm">
+        <Card className="hover:shadow-sm md:col-span-2 lg:col-span-1">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>

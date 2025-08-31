@@ -182,82 +182,85 @@ const MeterReadings = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Meter Readings</h1>
-          <p className="text-muted-foreground">
-            {months[currentMonth - 1]} {currentYear}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <ExportButton 
-            data={readings}
-            filename={`meter-readings-${months[currentMonth - 1]}-${currentYear}`}
-            formatData={formatMeterReadingDataForExport}
-            disabled={loading}
-          />
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Record Reading
-              </Button>
-            </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Record Meter Reading</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Select Tenant</label>
-                <select 
-                  className="w-full mt-1 p-2 border rounded-md"
-                  value={selectedTenant?.id || ''}
-                  onChange={(e) => {
-                    const tenant = tenants.find(t => t.id === e.target.value);
-                    setSelectedTenant(tenant || null);
-                  }}
-                >
-                  <option value="">Select a tenant...</option>
-                  {tenants.map(tenant => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.name} - Unit {tenant.house_unit_number}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Current Reading (m³)</label>
-                <Input
-                  type="number"
-                  placeholder="Enter meter reading"
-                  value={currentReading}
-                  onChange={(e) => setCurrentReading(e.target.value)}
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Meter Readings</h1>
+            <p className="text-muted-foreground">
+              {months[currentMonth - 1]} {currentYear}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <ExportButton 
+              data={readings}
+              filename={`meter-readings-${months[currentMonth - 1]}-${currentYear}`}
+              formatData={formatMeterReadingDataForExport}
+              disabled={loading}
+            />
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="hidden xs:inline">Record Reading</span>
+                  <span className="xs:hidden">Record</span>
                 </Button>
-                <Button onClick={handleSubmitReading} disabled={loading}>
-                  Submit Reading
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+              </DialogTrigger>
+              <DialogContent className="mx-4 sm:mx-auto">
+                <DialogHeader>
+                  <DialogTitle>Record Meter Reading</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Select Tenant</label>
+                    <select 
+                      className="w-full mt-1 p-2 border rounded-md"
+                      value={selectedTenant?.id || ''}
+                      onChange={(e) => {
+                        const tenant = tenants.find(t => t.id === e.target.value);
+                        setSelectedTenant(tenant || null);
+                      }}
+                    >
+                      <option value="">Select a tenant...</option>
+                      {tenants.map(tenant => (
+                        <option key={tenant.id} value={tenant.id}>
+                          {tenant.name} - Unit {tenant.house_unit_number}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Current Reading (m³)</label>
+                    <Input
+                      type="number"
+                      placeholder="Enter meter reading"
+                      value={currentReading}
+                      onChange={(e) => setCurrentReading(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="order-2 sm:order-1">
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSubmitReading} disabled={loading} className="order-1 sm:order-2">
+                      Submit Reading
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tenants</CardTitle>
             <Gauge className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{tenants.length}</div>
+            <div className="text-xl sm:text-2xl font-bold">{tenants.length}</div>
           </CardContent>
         </Card>
         
@@ -267,7 +270,7 @@ const MeterReadings = () => {
             <Gauge className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{readings.length}</div>
+            <div className="text-xl sm:text-2xl font-bold">{readings.length}</div>
           </CardContent>
         </Card>
 
@@ -277,7 +280,7 @@ const MeterReadings = () => {
             <Gauge className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{tenantsWithoutReadings.length}</div>
+            <div className="text-xl sm:text-2xl font-bold">{tenantsWithoutReadings.length}</div>
           </CardContent>
         </Card>
       </div>
@@ -289,12 +292,12 @@ const MeterReadings = () => {
             <CardTitle>Pending Readings</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2">
+            <div className="space-y-2">
               {tenantsWithoutReadings.map(tenant => (
-                <div key={tenant.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{tenant.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                <div key={tenant.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{tenant.name}</p>
+                    <p className="text-sm text-muted-foreground truncate">
                       Unit {tenant.house_unit_number} • Meter: {tenant.meter_connection_number}
                     </p>
                   </div>
@@ -304,8 +307,10 @@ const MeterReadings = () => {
                       setSelectedTenant(tenant);
                       setIsDialogOpen(true);
                     }}
+                    className="w-full sm:w-auto flex-shrink-0"
                   >
-                    Record Reading
+                    <span className="hidden xs:inline">Record Reading</span>
+                    <span className="xs:hidden">Record</span>
                   </Button>
                 </div>
               ))}
@@ -325,38 +330,50 @@ const MeterReadings = () => {
               No readings recorded for this month
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tenant</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Previous</TableHead>
-                  <TableHead>Current</TableHead>
-                  <TableHead>Usage</TableHead>
-                  <TableHead>Bill Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {readings.map((reading) => (
-                  <TableRow key={reading.id}>
-                    <TableCell className="font-medium">
-                      {reading.tenants.name}
-                    </TableCell>
-                    <TableCell>{reading.tenants.house_unit_number}</TableCell>
-                    <TableCell>{reading.previous_reading} m³</TableCell>
-                    <TableCell>{reading.current_reading} m³</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {reading.units_used} m³
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {formatKES(reading.bill_amount)}
-                    </TableCell>
+            <div className="overflow-x-auto -mx-2 sm:mx-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tenant</TableHead>
+                    <TableHead className="hidden sm:table-cell">Unit</TableHead>
+                    <TableHead className="hidden md:table-cell">Previous</TableHead>
+                    <TableHead>Current</TableHead>
+                    <TableHead className="hidden lg:table-cell">Usage</TableHead>
+                    <TableHead>Bill Amount</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {readings.map((reading) => (
+                    <TableRow key={reading.id}>
+                      <TableCell className="font-medium">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{reading.tenants.name}</div>
+                          <div className="text-xs text-muted-foreground sm:hidden">
+                            Unit {reading.tenants.house_unit_number}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{reading.tenants.house_unit_number}</TableCell>
+                      <TableCell className="hidden md:table-cell">{reading.previous_reading} m³</TableCell>
+                      <TableCell>{reading.current_reading} m³</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="outline">
+                          {reading.units_used} m³
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div className="text-right sm:text-left">
+                          {formatKES(reading.bill_amount)}
+                        </div>
+                        <div className="text-xs text-muted-foreground lg:hidden">
+                          {reading.units_used} m³ used
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

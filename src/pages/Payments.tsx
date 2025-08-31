@@ -624,49 +624,56 @@ const Payments = () => {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-				<h1 className="text-3xl font-bold">Payments</h1>
-				<div className="flex flex-wrap gap-2 items-center">
+			<div className="flex flex-col gap-4">
+				<h1 className="text-2xl sm:text-3xl font-bold">Payments</h1>
+				
+				{/* Search Input */}
+				<Input
+					placeholder="Search payments..."
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+					className="w-full"
+				/>
+				
+				{/* Date Range Filters */}
+				<div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+					<CalendarIcon className="h-4 w-4 mt-3 sm:mt-0" />
 					<Input
-						placeholder="Search payments..."
-						value={query}
-						onChange={(e) => setQuery(e.target.value)}
-						className="w-full sm:w-48"
+						type="date"
+						placeholder="Start date"
+						value={startDate}
+						onChange={(e) => setStartDate(e.target.value)}
+						className="w-full sm:w-auto"
 					/>
-					<div className="flex gap-2 items-center">
-						<CalendarIcon className="h-4 w-4" />
-						<Input
-							type="date"
-							placeholder="Start date"
-							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
-							className="w-36"
-						/>
-						<span className="text-muted-foreground">to</span>
-						<Input
-							type="date"
-							placeholder="End date"
-							value={endDate}
-							onChange={(e) => setEndDate(e.target.value)}
-							className="w-36"
-						/>
-					</div>
+					<span className="text-muted-foreground hidden sm:inline">to</span>
+					<Input
+						type="date"
+						placeholder="End date"
+						value={endDate}
+						onChange={(e) => setEndDate(e.target.value)}
+						className="w-full sm:w-auto"
+					/>
+				</div>
+				
+				{/* Action Buttons */}
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
 					<ExportButton 
 						data={filtered}
 						filename="payments"
 						formatData={formatPaymentDataForExport}
 						disabled={loading}
 					/>
-					<Button onClick={() => setShowAddDialog(true)}>
+					<Button onClick={() => setShowAddDialog(true)} className="w-full">
 						<PlusCircle className="h-4 w-4 mr-2" />
-						Record Payment
+						<span className="hidden xs:inline">Record Payment</span>
+						<span className="xs:hidden">Record</span>
 					</Button>
 				</div>
 			</div>
 			
 			{/* Add Payment Dialog */}
 			<Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-				<DialogContent>
+				<DialogContent className="mx-4 sm:mx-auto">
 					<DialogHeader>
 						<DialogTitle>Record New Payment</DialogTitle>
 						<DialogDescription>
@@ -687,7 +694,7 @@ const Payments = () => {
 					open={!!editingPayment} 
 					onOpenChange={(open) => !open && setEditingPayment(undefined)}
 				>
-					<DialogContent>
+					<DialogContent className="mx-4 sm:mx-auto">
 						<DialogHeader>
 							<DialogTitle>Edit Payment</DialogTitle>
 							<DialogDescription>
@@ -717,45 +724,67 @@ const Payments = () => {
 					) : filtered.length === 0 ? (
 						<div className="py-10 text-center text-muted-foreground">No payment records found</div>
 					) : (
-						<div className="overflow-x-auto">
-							<table className="w-full text-sm">
+						<div className="overflow-x-auto -mx-2 sm:mx-0">
+							<table className="w-full text-sm min-w-full">
 								<thead>
 									<tr className="text-left border-b">
-										<th className="py-2 pr-4">Date</th>
-										<th className="py-2 pr-4">Tenant</th>
-										<th className="py-2 pr-4">Amount</th>
-										<th className="py-2 pr-4">Method</th>
-										<th className="py-2 pr-4">Notes</th>
-										<th className="py-2 pr-0 text-right">Actions</th>
+										<th className="py-2 px-2 sm:pr-4">Date</th>
+										<th className="py-2 px-2 sm:pr-4">Tenant</th>
+										<th className="py-2 px-2 sm:pr-4 hidden sm:table-cell">Amount</th>
+										<th className="py-2 px-2 sm:pr-4 hidden md:table-cell">Method</th>
+										<th className="py-2 px-2 sm:pr-4 hidden lg:table-cell">Notes</th>
+										<th className="py-2 px-2 sm:pr-0 text-right">Actions</th>
 									</tr>
 								</thead>
 								<tbody>
 									{filtered.map((row) => (
 										<tr key={row.id} className="border-b last:border-0">
-											<td className="py-3 pr-4">{new Date(row.payment_date).toLocaleDateString()}</td>
-											<td className="py-3 pr-4 font-medium">{row.tenant?.name || 'Unknown'}</td>
-											<td className="py-3 pr-4">{formatKES(row.amount)}</td>
-											<td className="py-3 pr-4">{row.payment_method || 'N/A'}</td>
-											<td className="py-3 pr-4">{row.notes || '—'}</td>
-											<td className="py-3 pr-0 text-right">
-												<div className="flex justify-end gap-2">
+											<td className="py-3 px-2 sm:pr-4 text-xs sm:text-sm">
+												{new Date(row.payment_date).toLocaleDateString()}
+											</td>
+											<td className="py-3 px-2 sm:pr-4 font-medium">
+												<div className="min-w-0">
+													<div className="font-medium truncate">{row.tenant?.name || 'Unknown'}</div>
+													<div className="text-xs text-muted-foreground sm:hidden">
+														{formatKES(row.amount)} • {row.payment_method || 'N/A'}
+													</div>
+												</div>
+											</td>
+											<td className="py-3 px-2 sm:pr-4 hidden sm:table-cell font-medium">
+												{formatKES(row.amount)}
+											</td>
+											<td className="py-3 px-2 sm:pr-4 hidden md:table-cell">
+												{row.payment_method || 'N/A'}
+											</td>
+											<td className="py-3 px-2 sm:pr-4 hidden lg:table-cell">
+												<div className="max-w-32 truncate">
+													{row.notes || '—'}
+												</div>
+											</td>
+											<td className="py-3 px-2 sm:pr-0 text-right">
+												<div className="flex justify-end gap-1 sm:gap-2">
 													<Button 
 														variant="ghost" 
 														size="sm" 
 														onClick={() => setEditingPayment(row)}
+														className="h-8 w-8 sm:h-auto sm:w-auto p-1 sm:px-3"
 													>
-														<Pencil className="h-4 w-4 mr-1" />
-														Edit
+														<Pencil className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+														<span className="hidden sm:inline">Edit</span>
 													</Button>
 													
 													<AlertDialog>
 														<AlertDialogTrigger asChild>
-															<Button variant="ghost" size="sm" className="text-destructive">
-																<Trash2 className="h-4 w-4 mr-1" />
-																Delete
+															<Button 
+																variant="ghost" 
+																size="sm" 
+																className="text-destructive h-8 w-8 sm:h-auto sm:w-auto p-1 sm:px-3"
+															>
+																<Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+																<span className="hidden sm:inline">Delete</span>
 															</Button>
 														</AlertDialogTrigger>
-														<AlertDialogContent>
+														<AlertDialogContent className="mx-4 sm:mx-auto">
 															<AlertDialogHeader>
 																<AlertDialogTitle>Are you sure?</AlertDialogTitle>
 																<AlertDialogDescription>

@@ -444,36 +444,45 @@ const Billing = () => {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-				<h1 className="text-3xl font-bold">Billing</h1>
-				<div className="flex flex-wrap gap-2 items-center">
-					<Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-						<SelectTrigger className="w-[120px]"><SelectValue placeholder="Month" /></SelectTrigger>
-						<SelectContent>
-							{months.map((m, idx) => (
-								<SelectItem key={m} value={String(idx + 1)}>{m}</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-						<SelectTrigger className="w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
-						<SelectContent>
-							{years.map(y => (
-								<SelectItem key={y} value={String(y)}>{y}</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<Input placeholder="Search by tenant" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full sm:w-64" />
-					<ExportButton 
-						data={filtered}
-						filename={`billing-${months[month - 1]}-${year}`}
-						formatData={formatBillingDataForExport}
-						disabled={loading}
-					/>
-					<Button onClick={() => setShowAddDialog(true)}>
-						<PlusCircle className="h-4 w-4 mr-2" />
-						New Bill
-					</Button>
+			<div className="flex flex-col gap-4">
+				<h1 className="text-2xl sm:text-3xl font-bold">Billing</h1>
+				
+				{/* Filters and Search */}
+				<div className="flex flex-col gap-3">
+					<div className="flex flex-col sm:flex-row gap-2">
+						<Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+							<SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Month" /></SelectTrigger>
+							<SelectContent>
+								{months.map((m, idx) => (
+									<SelectItem key={m} value={String(idx + 1)}>{m}</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+							<SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
+							<SelectContent>
+								{years.map(y => (
+									<SelectItem key={y} value={String(y)}>{y}</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+					<Input placeholder="Search by tenant" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full" />
+					
+					{/* Action Buttons */}
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+						<ExportButton 
+							data={filtered}
+							filename={`billing-${months[month - 1]}-${year}`}
+							formatData={formatBillingDataForExport}
+							disabled={loading}
+						/>
+						<Button onClick={() => setShowAddDialog(true)} className="w-full">
+							<PlusCircle className="h-4 w-4 mr-2" />
+							<span className="hidden xs:inline">New Bill</span>
+							<span className="xs:hidden">New</span>
+						</Button>
+					</div>
 				</div>
 			</div>
 
