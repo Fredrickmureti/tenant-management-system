@@ -28,6 +28,7 @@ export type Database = {
           previous_balance: number
           previous_reading: number
           rate_per_unit: number
+          standing_charge: number
           tenant_id: string
           units_used: number | null
           updated_at: string
@@ -46,6 +47,7 @@ export type Database = {
           previous_balance?: number
           previous_reading?: number
           rate_per_unit?: number
+          standing_charge?: number
           tenant_id: string
           units_used?: number | null
           updated_at?: string
@@ -64,6 +66,7 @@ export type Database = {
           previous_balance?: number
           previous_reading?: number
           rate_per_unit?: number
+          standing_charge?: number
           tenant_id?: string
           units_used?: number | null
           updated_at?: string

@@ -13,6 +13,7 @@ type Bill = {
   paid_amount: number
   current_balance: number
   due_date: string
+  standing_charge: number
 }
 
 const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -34,7 +35,7 @@ const Bills = () => {
       if (!tenant) { setRows([]); setLoading(false); return }
       const { data } = await supabase
         .from('billing_cycles')
-        .select('id, month, year, units_used, bill_amount, paid_amount, current_balance, due_date')
+        .select('id, month, year, units_used, bill_amount, paid_amount, current_balance, due_date, standing_charge')
         .eq('tenant_id', (tenant as any).id)
         .order('year', { ascending: false })
         .order('month', { ascending: false })
@@ -59,26 +60,28 @@ const Bills = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 pr-4">Period</th>
-                    <th className="py-2 pr-4">Usage</th>
-                    <th className="py-2 pr-4">Billed</th>
-                    <th className="py-2 pr-4">Paid</th>
-                    <th className="py-2 pr-4">Balance</th>
-                    <th className="py-2 pr-4">Due</th>
-                  </tr>
-                </thead>
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="py-2 pr-4">Period</th>
+                      <th className="py-2 pr-4">Usage</th>
+                      <th className="py-2 pr-4">Standing</th>
+                      <th className="py-2 pr-4">Billed</th>
+                      <th className="py-2 pr-4">Paid</th>
+                      <th className="py-2 pr-4">Balance</th>
+                      <th className="py-2 pr-4">Due</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {rows.map(b => (
-                    <tr key={b.id} className="border-b last:border-0">
-                      <td className="py-3 pr-4">{months[b.month - 1]} {b.year}</td>
-                      <td className="py-3 pr-4">{b.units_used} m³</td>
-                      <td className="py-3 pr-4">{formatKES(b.bill_amount)}</td>
-                      <td className="py-3 pr-4">{formatKES(b.paid_amount)}</td>
-                      <td className={`py-3 pr-4 ${b.current_balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{formatKES(b.current_balance)}</td>
-                      <td className="py-3 pr-4">{new Date(b.due_date).toLocaleDateString()}</td>
-                    </tr>
+                      <tr key={b.id} className="border-b last:border-0">
+                        <td className="py-3 pr-4">{months[b.month - 1]} {b.year}</td>
+                        <td className="py-3 pr-4">{b.units_used} m³</td>
+                        <td className="py-3 pr-4">{formatKES(b.standing_charge || 100)}</td>
+                        <td className="py-3 pr-4">{formatKES(b.bill_amount)}</td>
+                        <td className="py-3 pr-4">{formatKES(b.paid_amount)}</td>
+                        <td className={`py-3 pr-4 ${b.current_balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{formatKES(b.current_balance)}</td>
+                        <td className="py-3 pr-4">{new Date(b.due_date).toLocaleDateString()}</td>
+                      </tr>
                   ))}
                 </tbody>
               </table>

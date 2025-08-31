@@ -40,6 +40,7 @@ type Billing = {
 	current_reading: number
 	units_used: number
 	rate_per_unit: number
+	standing_charge: number
 	bill_amount: number
 	paid_amount: number
 	previous_balance: number
@@ -79,6 +80,7 @@ const BillingForm = ({
 			previous_reading: 0,
 			current_reading: 0,
 			rate_per_unit: 50.00,
+			standing_charge: 100.00,
 			paid_amount: 0,
 			previous_balance: 0,
 			bill_date: new Date().toISOString().split('T')[0],
@@ -206,6 +208,21 @@ const BillingForm = ({
 					</div>
 
 					<div className="space-y-2">
+						<Label htmlFor="standing_charge">Standing Charge (KES)</Label>
+						<Input
+							id="standing_charge"
+							name="standing_charge"
+							type="number"
+							step="0.01"
+							value={formData.standing_charge || 100}
+							onChange={handleChange}
+							required
+						/>
+					</div>
+				</div>
+
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<div className="space-y-2">
 						<Label htmlFor="previous_balance">Previous Balance (KES)</Label>
 						<Input
 							id="previous_balance"
@@ -217,6 +234,20 @@ const BillingForm = ({
 							disabled={fetchingLastBilling}
 							required
 						/>
+					</div>
+				</div>
+
+				{/* Bill calculation preview */}
+				<div className="p-4 bg-muted rounded-lg space-y-2">
+					<h4 className="font-medium">Bill Calculation Preview:</h4>
+					<div className="space-y-1 text-sm">
+						<div>Standing Charge: {formatKES(formData.standing_charge || 100)}</div>
+						<div>Units Used: {((formData.current_reading || 0) - (formData.previous_reading || 0)).toFixed(2)} m³</div>
+						<div>Usage Charges: {formatKES(((formData.current_reading || 0) - (formData.previous_reading || 0)) * (formData.rate_per_unit || 50))}</div>
+						<div>Previous Balance: {formatKES(formData.previous_balance || 0)}</div>
+						<div className="font-medium border-t pt-1">
+							Total Bill Amount: {formatKES((formData.standing_charge || 100) + ((formData.current_reading || 0) - (formData.previous_reading || 0)) * (formData.rate_per_unit || 50) + (formData.previous_balance || 0))}
+						</div>
 					</div>
 				</div>
 
@@ -299,6 +330,7 @@ const Billing = () => {
 				previous_reading: billData.previous_reading || 0,
 				current_reading: billData.current_reading,
 				rate_per_unit: billData.rate_per_unit || 50.00,
+				standing_charge: billData.standing_charge || 100.00,
 				paid_amount: billData.paid_amount || 0,
 				previous_balance: billData.previous_balance || 0,
 				bill_date: billData.bill_date,
@@ -519,6 +551,7 @@ const Billing = () => {
 										<th className="py-2 pr-4">Tenant</th>
 										<th className="py-2 pr-4">Unit</th>
 										<th className="py-2 pr-4">Units Used</th>
+										<th className="py-2 pr-4">Standing</th>
 										<th className="py-2 pr-4">Billed</th>
 										<th className="py-2 pr-4">Paid</th>
 										<th className="py-2 pr-4">Balance</th>
@@ -532,6 +565,7 @@ const Billing = () => {
 											<td className="py-3 pr-4 font-medium">{r.tenant?.name || '—'}</td>
 											<td className="py-3 pr-4">{r.tenant?.house_unit_number || '—'}</td>
 											<td className="py-3 pr-4">{r.units_used} m³</td>
+											<td className="py-3 pr-4">{formatKES(r.standing_charge || 100)}</td>
 											<td className="py-3 pr-4">{formatKES(r.bill_amount)}</td>
 											<td className="py-3 pr-4">{formatKES(r.paid_amount)}</td>
 											<td className={`py-3 pr-4 ${r.current_balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
