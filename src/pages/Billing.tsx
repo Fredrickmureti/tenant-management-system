@@ -444,14 +444,14 @@ const Billing = () => {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col gap-4">
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 				<h1 className="text-2xl sm:text-3xl font-bold">Billing</h1>
 				
-				{/* Filters and Search */}
-				<div className="flex flex-col gap-3">
-					<div className="flex flex-col sm:flex-row gap-2">
+				{/* Responsive Controls Container */}
+				<div className="flex flex-wrap gap-2 items-center w-full sm:w-auto sm:justify-end">
+					<div className="flex gap-2 items-center">
 						<Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-							<SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Month" /></SelectTrigger>
+							<SelectTrigger className="w-20 sm:w-24"><SelectValue placeholder="Month" /></SelectTrigger>
 							<SelectContent>
 								{months.map((m, idx) => (
 									<SelectItem key={m} value={String(idx + 1)}>{m}</SelectItem>
@@ -459,7 +459,7 @@ const Billing = () => {
 							</SelectContent>
 						</Select>
 						<Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-							<SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Year" /></SelectTrigger>
+							<SelectTrigger className="w-20 sm:w-24"><SelectValue placeholder="Year" /></SelectTrigger>
 							<SelectContent>
 								{years.map(y => (
 									<SelectItem key={y} value={String(y)}>{y}</SelectItem>
@@ -467,22 +467,18 @@ const Billing = () => {
 							</SelectContent>
 						</Select>
 					</div>
-					<Input placeholder="Search by tenant" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full" />
-					
-					{/* Action Buttons */}
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-						<ExportButton 
-							data={filtered}
-							filename={`billing-${months[month - 1]}-${year}`}
-							formatData={formatBillingDataForExport}
-							disabled={loading}
-						/>
-						<Button onClick={() => setShowAddDialog(true)} className="w-full">
-							<PlusCircle className="h-4 w-4 mr-2" />
-							<span className="hidden xs:inline">New Bill</span>
-							<span className="xs:hidden">New</span>
-						</Button>
-					</div>
+					<Input placeholder="Search tenant..." value={query} onChange={(e) => setQuery(e.target.value)} className="w-full sm:w-48" />
+					<ExportButton 
+						data={filtered}
+						filename={`billing-${months[month - 1]}-${year}`}
+						formatData={formatBillingDataForExport}
+						disabled={loading}
+						className="shrink-0"
+					/>
+					<Button onClick={() => setShowAddDialog(true)} className="shrink-0">
+						<PlusCircle className="h-4 w-4 mr-2" />
+						New Bill
+					</Button>
 				</div>
 			</div>
 
@@ -554,49 +550,50 @@ const Billing = () => {
 						</div>
 					) : (
 						<div className="overflow-x-auto">
-							<table className="w-full text-sm">
+							<table className="w-full text-sm min-w-[800px]">
 								<thead>
 									<tr className="text-left border-b">
-										<th className="py-2 pr-4">Tenant</th>
-										<th className="py-2 pr-4">Unit</th>
-										<th className="py-2 pr-4">Units Used</th>
-										<th className="py-2 pr-4">Standing</th>
-										<th className="py-2 pr-4">Billed</th>
-										<th className="py-2 pr-4">Paid</th>
-										<th className="py-2 pr-4">Balance</th>
-										<th className="py-2 pr-4">Due Date</th>
-										<th className="py-2 text-right">Actions</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[100px]">Tenant</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[60px]">Unit</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[70px]">Units</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[80px]">Standing</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[80px]">Billed</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[70px]">Paid</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[80px]">Balance</th>
+										<th className="py-2 pr-2 sm:pr-4 min-w-[90px]">Due Date</th>
+										<th className="py-2 text-right min-w-[100px]">Actions</th>
 									</tr>
 								</thead>
 								<tbody>
 									{filtered.map((r) => (
 										<tr key={r.id} className="border-b last:border-0">
-											<td className="py-3 pr-4 font-medium">{r.tenant?.name || '—'}</td>
-											<td className="py-3 pr-4">{r.tenant?.house_unit_number || '—'}</td>
-											<td className="py-3 pr-4">{r.units_used} m³</td>
-											<td className="py-3 pr-4">{formatKES(r.standing_charge || 100)}</td>
-											<td className="py-3 pr-4">{formatKES(r.bill_amount)}</td>
-											<td className="py-3 pr-4">{formatKES(r.paid_amount)}</td>
-											<td className={`py-3 pr-4 ${r.current_balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+											<td className="py-3 pr-2 sm:pr-4 font-medium truncate max-w-[100px]">{r.tenant?.name || '—'}</td>
+											<td className="py-3 pr-2 sm:pr-4">{r.tenant?.house_unit_number || '—'}</td>
+											<td className="py-3 pr-2 sm:pr-4">{r.units_used} m³</td>
+											<td className="py-3 pr-2 sm:pr-4">{formatKES(r.standing_charge || 100)}</td>
+											<td className="py-3 pr-2 sm:pr-4">{formatKES(r.bill_amount)}</td>
+											<td className="py-3 pr-2 sm:pr-4">{formatKES(r.paid_amount)}</td>
+											<td className={`py-3 pr-2 sm:pr-4 ${r.current_balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
 												{formatKES(r.current_balance)}
 											</td>
-											<td className="py-3 pr-4">{new Date(r.due_date).toLocaleDateString()}</td>
+											<td className="py-3 pr-2 sm:pr-4">{new Date(r.due_date).toLocaleDateString()}</td>
 											<td className="py-3 text-right">
-												<div className="flex justify-end gap-2">
+												<div className="flex justify-end gap-1">
 													<Button 
 														variant="ghost" 
 														size="sm" 
 														onClick={() => setEditingBill(r)}
+														className="px-2"
 													>
-														<Pencil className="h-4 w-4 mr-1" />
-														Edit
+														<Pencil className="h-4 w-4" />
+														<span className="sr-only">Edit</span>
 													</Button>
 													
 													<AlertDialog>
 														<AlertDialogTrigger asChild>
-															<Button variant="ghost" size="sm" className="text-destructive">
-																<Trash2 className="h-4 w-4 mr-1" />
-																Delete
+															<Button variant="ghost" size="sm" className="text-destructive px-2">
+																<Trash2 className="h-4 w-4" />
+																<span className="sr-only">Delete</span>
 															</Button>
 														</AlertDialogTrigger>
 														<AlertDialogContent>
