@@ -386,15 +386,21 @@ const Tenants = () => {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-				<h1 className="text-3xl font-bold">Tenants</h1>
-				<div className="flex gap-2">
+			<div className="flex flex-col gap-4">
+				<h1 className="text-2xl sm:text-3xl font-bold">Tenants</h1>
+				
+				{/* Search Input - Full width on mobile */}
+				<div className="w-full">
 					<Input
 						placeholder="Search tenants..."
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
-						className="w-full sm:w-72"
+						className="w-full"
 					/>
+				</div>
+				
+				{/* Action Buttons - Responsive grid */}
+				<div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
 					<ImportTenants onImportComplete={fetchTenants} />
 					<ExportButton 
 						data={filtered}
@@ -402,9 +408,10 @@ const Tenants = () => {
 						formatData={formatTenantDataForExport}
 						disabled={loading}
 					/>
-					<Button onClick={() => setShowAddDialog(true)}>
+					<Button onClick={() => setShowAddDialog(true)} className="w-full">
 						<PlusCircle className="h-4 w-4 mr-2" />
-						Add Tenant
+						<span className="hidden xs:inline">Add Tenant</span>
+						<span className="xs:hidden">Add</span>
 					</Button>
 				</div>
 			</div>
@@ -457,61 +464,73 @@ const Tenants = () => {
 					) : filtered.length === 0 ? (
 						<div className="py-10 text-center text-muted-foreground">No tenants found</div>
 					) : (
-						<div className="overflow-x-auto">
-							<table className="w-full text-sm">
+						<div className="overflow-x-auto -mx-2 sm:mx-0">
+							<table className="w-full text-sm min-w-full">
 								<thead>
 									<tr className="text-left border-b">
-										<th className="py-2 pr-4">Name</th>
-										<th className="py-2 pr-4">Unit</th>
-										<th className="py-2 pr-4">Meter</th>
-										<th className="py-2 pr-4">Phone</th>
-										<th className="py-2 pr-4">Email</th>
-										<th className="py-2 pr-4">Status</th>
-										<th className="py-2 pr-0 text-right">Actions</th>
+										<th className="py-2 px-2 sm:pr-4">Name</th>
+										<th className="py-2 px-2 sm:pr-4 hidden sm:table-cell">Unit</th>
+										<th className="py-2 px-2 sm:pr-4 hidden md:table-cell">Meter</th>
+										<th className="py-2 px-2 sm:pr-4 hidden lg:table-cell">Phone</th>
+										<th className="py-2 px-2 sm:pr-4 hidden xl:table-cell">Email</th>
+										<th className="py-2 px-2 sm:pr-4">Status</th>
+										<th className="py-2 px-2 sm:pr-0 text-right">Actions</th>
 									</tr>
 								</thead>
 								<tbody>
 									{filtered.map((t) => (
 										<tr key={t.id} className="border-b last:border-0">
-											<td className="py-3 pr-4 font-medium">{t.name}</td>
-											<td className="py-3 pr-4">{t.house_unit_number}</td>
-											<td className="py-3 pr-4">{t.meter_connection_number}</td>
-											<td className="py-3 pr-4">{t.phone}</td>
-											<td className="py-3 pr-4">{t.email || '—'}</td>
-											<td className="py-3 pr-4">
+											<td className="py-3 px-2 sm:pr-4 font-medium">
+												<div className="min-w-0">
+													<div className="font-medium truncate">{t.name}</div>
+													<div className="text-xs text-muted-foreground sm:hidden">
+														{t.house_unit_number} • {t.phone}
+													</div>
+												</div>
+											</td>
+											<td className="py-3 px-2 sm:pr-4 hidden sm:table-cell">{t.house_unit_number}</td>
+											<td className="py-3 px-2 sm:pr-4 hidden md:table-cell">{t.meter_connection_number}</td>
+											<td className="py-3 px-2 sm:pr-4 hidden lg:table-cell">{t.phone}</td>
+											<td className="py-3 px-2 sm:pr-4 hidden xl:table-cell">{t.email || '—'}</td>
+											<td className="py-3 px-2 sm:pr-4">
 												<div className="flex items-center">
 													{t.status === 'active' ? (
 														<>
-															<CheckCircle className="h-4 w-4 mr-1 text-emerald-600" />
-															<span className="text-emerald-600">Active</span>
+															<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-emerald-600" />
+															<span className="text-emerald-600 text-xs sm:text-sm">Active</span>
 														</>
 													) : (
 														<>
-															<X className="h-4 w-4 mr-1 text-amber-600" />
-															<span className="text-amber-600">Vacated</span>
+															<X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-amber-600" />
+															<span className="text-amber-600 text-xs sm:text-sm">Vacated</span>
 														</>
 													)}
 												</div>
 											</td>
-											<td className="py-3 pr-0 text-right">
-												<div className="flex justify-end gap-2">
+											<td className="py-3 px-2 sm:pr-0 text-right">
+												<div className="flex justify-end gap-1 sm:gap-2">
 													<Button 
 														variant="ghost" 
 														size="sm" 
 														onClick={() => setEditingTenant(t)}
+														className="h-8 w-8 sm:h-auto sm:w-auto p-1 sm:px-3"
 													>
-														<Pencil className="h-4 w-4 mr-1" />
-														Edit
+														<Pencil className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+														<span className="hidden sm:inline">Edit</span>
 													</Button>
 													
 													<AlertDialog>
 														<AlertDialogTrigger asChild>
-															<Button variant="ghost" size="sm" className="text-destructive">
-																<Trash2 className="h-4 w-4 mr-1" />
-																Delete
+															<Button 
+																variant="ghost" 
+																size="sm" 
+																className="text-destructive h-8 w-8 sm:h-auto sm:w-auto p-1 sm:px-3"
+															>
+																<Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+																<span className="hidden sm:inline">Delete</span>
 															</Button>
 														</AlertDialogTrigger>
-														<AlertDialogContent>
+														<AlertDialogContent className="mx-4 sm:mx-auto">
 															<AlertDialogHeader>
 																<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 																<AlertDialogDescription>

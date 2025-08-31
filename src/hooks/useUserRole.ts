@@ -52,6 +52,6 @@ export const useUserRole = () => {
     isClerk,
     isTenant,
     canExport: isAdmin || isClerk, // Only admin and clerk can export data
-    canImport: isAdmin, // Only admin can import data
+    canImport: isAdmin || isClerk, // Admin and clerk can import data
   };
 };
