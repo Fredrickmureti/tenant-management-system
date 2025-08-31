@@ -1,0 +1,82 @@
+TENANT MANAGEMENT SYSTEM - USER GUIDE
+=====================================
+
+WHAT THIS SYSTEM DOES
+=====================
+This system helps you manage water billing for rental properties. It tracks tenants, records meter readings, calculates bills, and processes payments automatically.
+
+HOW TO USE THE SYSTEM
+====================
+
+1. MANAGING TENANTS
+------------------
+- Go to "Tenants" page
+- Click "Add Tenant" to add new tenants
+- Fill in: Name, House Number, Phone, Email
+- Set status as "Active" or "Vacated"
+- Use "Import" button to add multiple tenants from Excel/CSV
+
+2. RECORDING METER READINGS
+--------------------------
+- Go to "Meter Readings" page each month
+- Enter the current meter reading for each tenant
+- System automatically calculates water usage
+- Bills are created automatically based on usage
+
+3. MANAGING BILLS
+----------------
+- Go to "Billing" page to see all bills
+- View bills by month and year
+- Edit bill amounts if needed
+- Check payment status (Paid/Unpaid/Partial)
+- Export bills to Excel for reports
+
+4. PROCESSING PAYMENTS
+---------------------
+- Go to "Payments" page
+- Click "Add Payment" when tenant pays
+- Enter payment amount and method (Cash, M-Pesa, Bank)
+- Add payment reference/receipt number
+- System updates bill balances automatically
+
+5. DASHBOARD OVERVIEW
+--------------------
+- Main dashboard shows:
+  - Total tenants and revenue
+  - Outstanding balances
+  - Recent payments
+  - Quick access to all features
+
+MONTHLY ROUTINE
+===============
+1. Record meter readings for all tenants
+2. Review generated bills
+3. Send bills to tenants (via communications)
+4. Record payments as they come in
+5. Follow up on unpaid bills
+
+TENANT ACCESS
+=============
+Tenants can log in to view:
+- Their current bill
+- Payment history
+- Water usage over time
+- Account balance
+
+IMPORTANT NOTES
+===============
+- Always record payments immediately when received
+- Take meter readings on the same date each month
+- Check that all bills are paid before month-end
+- Export data regularly for your records
+- Contact support if you need help with any feature
+
+GETTING STARTED
+===============
+1. Log in with your admin credentials
+2. Add your tenants first
+3. Record initial meter readings
+4. Start monthly billing cycle
+5. Begin processing payments
+
+This system will save you time and reduce errors in your water billing process.
