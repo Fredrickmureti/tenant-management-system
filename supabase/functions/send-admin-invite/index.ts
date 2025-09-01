@@ -12,9 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const { inviteId, email, fullName, role } = await req.json();
+    console.log('Function started, parsing request...');
+    const requestData = await req.json();
+    console.log('Request data:', requestData);
+    
+    const { inviteId, email, fullName, role } = requestData;
 
     if (!email || !fullName || !role) {
+      console.error('Missing required fields:', { email, fullName, role });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { 
@@ -26,6 +31,8 @@ serve(async (req) => {
 
     // Get the Resend API key from environment variables
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    console.log('RESEND_API_KEY present:', !!resendApiKey);
+    
     if (!resendApiKey) {
       console.error('RESEND_API_KEY not found in environment variables');
       return new Response(
@@ -38,8 +45,13 @@ serve(async (req) => {
     }
 
     // Create the signup link with role metadata
-    const signupUrl = `${Deno.env.get('SUPABASE_URL')}/auth/v1/signup`;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    console.log('SUPABASE_URL present:', !!supabaseUrl);
+    
+    const signupUrl = `${supabaseUrl}/auth/v1/signup`;
     const inviteLink = `${signupUrl}?email=${encodeURIComponent(email)}&full_name=${encodeURIComponent(fullName)}&role=${role}`;
+    
+    console.log('Generated invite link:', inviteLink);
 
     // Prepare the email content
     const emailSubject = `Invitation to join Water Billing System as ${role.charAt(0).toUpperCase() + role.slice(1)}`;
@@ -75,6 +87,8 @@ serve(async (req) => {
       </div>
     `;
 
+    console.log('Attempting to send email via Resend...');
+
     // Send the email using Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -89,6 +103,8 @@ serve(async (req) => {
         html: emailHtml,
       }),
     });
+
+    console.log('Resend response status:', emailResponse.status);
 
     if (!emailResponse.ok) {
       const errorData = await emailResponse.text();
