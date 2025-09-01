@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { CalendarIcon, Mail, MessageSquare, Receipt, Clock, Send } from 'lucide-react'
+import { CalendarIcon, Mail, MessageSquare, Receipt, Clock, Send, Trash2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { useUserRole } from '@/hooks/useUserRole'
 import type { Tables } from '@/integrations/supabase/types'
 import { ExportButton } from '@/components/ExportButton'
 import { formatCommunicationDataForExport } from '@/lib/export-utils'
@@ -41,7 +42,9 @@ const Communications = () => {
 	const [startDate, setStartDate] = useState('')
 	const [endDate, setEndDate] = useState('')
 	const [query, setQuery] = useState('')
+	const [deleting, setDeleting] = useState<string | null>(null)
 	const { toast } = useToast()
+	const { canDeleteFailedMessages } = useUserRole()
 
 	const [commForm, setCommForm] = useState<CommunicationForm>({
 		type: 'email',
@@ -187,6 +190,36 @@ const Communications = () => {
 		}
 		setSending(false)
 	}
+
+	const handleDeleteFailedMessage = async (logId: string) => {
+		setDeleting(logId);
+		try {
+			const { error } = await supabase
+				.from('communication_logs')
+				.delete()
+				.eq('id', logId);
+
+			if (error) throw error;
+
+			toast({
+				title: "Success",
+				description: "Failed message deleted successfully"
+			});
+
+			// Refresh the logs
+			setRows(current => current.filter(r => r.id !== logId));
+
+		} catch (error: any) {
+			console.error('Error deleting message:', error);
+			toast({
+				title: "Error",
+				description: error.message || "Failed to delete message",
+				variant: "destructive"
+			});
+		} finally {
+			setDeleting(null);
+		}
+	};
 
 	const selectedTenant = tenants.find(t => t.id === commForm.recipient)
 
@@ -414,7 +447,24 @@ const Communications = () => {
 												{r.type.toUpperCase()}
 											</Badge>
 										</div>
-										<div className={`text-xs ${statusColor(r.status)}`}>{r.status}</div>
+										<div className="flex items-center gap-2">
+											<div className={`text-xs ${statusColor(r.status)}`}>{r.status}</div>
+											{canDeleteFailedMessages && r.status === 'failed' && (
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() => handleDeleteFailedMessage(r.id)}
+													disabled={deleting === r.id}
+													className="text-destructive hover:text-destructive"
+												>
+													{deleting === r.id ? (
+														<div className="animate-spin rounded-full h-3 w-3 border-b-2 border-destructive"></div>
+													) : (
+														<Trash2 className="h-3 w-3" />
+													)}
+												</Button>
+											)}
+										</div>
 									</div>
 									<div className="text-xs text-muted-foreground mt-1">
 										{new Date(r.sent_at).toLocaleString('en-KE')}

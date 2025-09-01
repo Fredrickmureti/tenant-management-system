@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-export type UserRole = 'admin' | 'clerk' | 'tenant';
+export type UserRole = 'admin' | 'clerk' | 'tenant' | 'superadmin';
 
 export const useUserRole = () => {
   const [role, setRole] = useState<UserRole | null>(null);
@@ -44,6 +44,7 @@ export const useUserRole = () => {
   const isAdmin = role === 'admin';
   const isClerk = role === 'clerk';
   const isTenant = role === 'tenant';
+  const isSuperAdmin = role === 'superadmin';
 
   return {
     role,
@@ -51,7 +52,11 @@ export const useUserRole = () => {
     isAdmin,
     isClerk,
     isTenant,
-    canExport: isAdmin || isClerk, // Only admin and clerk can export data
-    canImport: isAdmin || isClerk, // Admin and clerk can import data
+    isSuperAdmin,
+    canExport: isAdmin || isClerk || isSuperAdmin, // Admin, clerk, and superadmin can export data
+    canImport: isAdmin || isClerk || isSuperAdmin, // Admin, clerk, and superadmin can import data
+    canManageAdmins: isAdmin || isSuperAdmin, // Only admin and superadmin can manage other admins
+    canViewAuditLogs: isSuperAdmin, // Only superadmin can view audit logs
+    canDeleteFailedMessages: isAdmin || isSuperAdmin, // Admin and superadmin can delete failed messages
   };
 };

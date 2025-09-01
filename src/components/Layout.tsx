@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
@@ -16,15 +17,19 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
+  UserPlus,
+  Eye,
+  Shield,
 } from 'lucide-react';
 
 const Layout = () => {
   const { user, signOut, loading } = useAuth();
+  const { canManageAdmins, canViewAuditLogs, loading: roleLoading } = useUserRole();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -43,6 +48,8 @@ const Layout = () => {
     { name: 'Billing', href: '/billing', icon: Receipt },
     { name: 'Payments', href: '/payments', icon: DollarSign },
     { name: 'Communications', href: '/communications', icon: MessageSquare },
+    ...(canManageAdmins ? [{ name: 'Admin Invites', href: '/admin-invites', icon: UserPlus }] : []),
+    ...(canViewAuditLogs ? [{ name: 'Audit Logs', href: '/audit-logs', icon: Eye }] : []),
   ];
 
   const handleSignOut = async () => {

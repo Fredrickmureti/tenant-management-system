@@ -19,6 +19,9 @@ import TenantPayments from "@/pages/tenant/Payments";
 import TenantProfile from "@/pages/tenant/Profile";
 import TenantAuth from "./pages/TenantAuth";
 import MeterReadings from "./pages/MeterReadings";
+import AdminInvites from "./pages/AdminInvites";
+import AuditLogs from "./pages/AuditLogs";
+import ResetPassword from "./pages/ResetPassword";
 import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
@@ -33,6 +36,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/tenant-auth" element={<TenantAuth />} />
               <Route path="/tenant" element={<TenantLayout />}>
                 <Route index element={<Overview />} />
@@ -47,6 +51,8 @@ const App = () => (
                 <Route path="billing" element={<Billing />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="communications" element={<Communications />} />
+                <Route path="admin-invites" element={<AdminInvites />} />
+                <Route path="audit-logs" element={<AuditLogs />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               </Route>
               <Route path="*" element={<NotFound />} />
