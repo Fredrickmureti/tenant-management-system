@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { UserPlus, Mail, Clock, Check, X, AlertCircle } from 'lucide-react';
+import { UserPlus, Mail, Clock, Check, X, AlertCircle, Trash2, Users, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -29,27 +29,49 @@ interface InviteForm {
   email: string;
   full_name: string;
   role: 'admin' | 'clerk';
+  temporaryPassword: string;
+}
+
+interface UserProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  role: 'admin' | 'clerk' | 'superadmin';
+  created_at: string;
 }
 
 const AdminInvites = () => {
   const [invites, setInvites] = useState<AdminInvite[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const { canManageAdmins } = useUserRole();
+  const { canManageAdmins, isSuperAdmin } = useUserRole();
   const { user } = useAuth();
 
   const [form, setForm] = useState<InviteForm>({
     email: '',
     full_name: '',
-    role: 'clerk'
+    role: 'clerk',
+    temporaryPassword: ''
   });
 
   useEffect(() => {
     if (!canManageAdmins) return;
     loadInvites();
+    loadUsers();
   }, [canManageAdmins]);
+
+  // Generate a random password when the dialog opens
+  useEffect(() => {
+    if (isDialogOpen && !form.temporaryPassword) {
+      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+      setForm(prev => ({ ...prev, temporaryPassword: randomPassword }));
+    }
+  }, [isDialogOpen, form.temporaryPassword]);
 
   const loadInvites = async () => {
     try {
@@ -74,8 +96,64 @@ const AdminInvites = () => {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['admin', 'clerk', 'superadmin'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      // Filter and cast to ensure correct types
+      const adminUsers = (data || []).filter(user => 
+        ['admin', 'clerk', 'superadmin'].includes(user.role)
+      ) as UserProfile[];
+      setUsers(adminUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive"
+      });
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleRemoveUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to remove ${userName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Delete from profiles first (this will cascade to auth.users via RLS)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: "Success",
+        description: `${userName} has been removed successfully`,
+      });
+
+      loadUsers();
+    } catch (error: any) {
+      console.error('Error removing user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove user",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleSendInvite = async () => {
-    if (!form.email || !form.full_name) {
+    if (!form.email || !form.full_name || !form.temporaryPassword) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -109,7 +187,8 @@ const AdminInvites = () => {
           inviteId: invite.id,
           email: form.email,
           fullName: form.full_name,
-          role: form.role
+          role: form.role,
+          temporaryPassword: form.temporaryPassword
         }
       });
 
@@ -166,39 +245,16 @@ const AdminInvites = () => {
         .update({ status: 'sent' })
         .eq('id', invite.id);
 
-      // Show success with magic link
-      const magicLink = functionData?.magicLink;
-      if (magicLink) {
-        toast({
-          title: "User account created!",
-          description: `Account created for ${form.email}. You can share this login link with them.`,
-        });
-        
-        // Copy magic link to clipboard
-        try {
-          await navigator.clipboard.writeText(magicLink);
-          toast({
-            title: "Login link copied!",
-            description: "The magic login link has been copied to your clipboard. Share it with the invited user.",
-          });
-        } catch (err) {
-          console.error('Failed to copy to clipboard:', err);
-          // Show the link in the UI if clipboard fails
-          toast({
-            title: "Magic Link Ready",
-            description: `Magic link: ${magicLink}`,
-          });
-        }
-      } else {
-        toast({
-          title: "Success",
-          description: `User account created for ${form.email}`
-        });
-      }
+      // Show success message
+      toast({
+        title: "User account created!",
+        description: `Account created for ${form.email}. Login credentials have been sent via email.`,
+      });
 
-      setForm({ email: '', full_name: '', role: 'clerk' });
+      setForm({ email: '', full_name: '', role: 'clerk', temporaryPassword: '' });
       setIsDialogOpen(false);
       loadInvites();
+      loadUsers();
 
     } catch (error: any) {
       console.error('Error sending invite:', error);
@@ -209,6 +265,7 @@ const AdminInvites = () => {
       });
       // Always refresh the list to ensure it's current
       loadInvites();
+      loadUsers();
     } finally {
       setSending(false);
     }
@@ -297,6 +354,31 @@ const AdminInvites = () => {
                 </Select>
               </div>
 
+              <div>
+                <Label htmlFor="temporaryPassword">Temporary Password</Label>
+                <div className="relative">
+                  <Input
+                    id="temporaryPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={form.temporaryPassword}
+                    onChange={(e) => setForm(prev => ({ ...prev, temporaryPassword: e.target.value }))}
+                    placeholder="Enter temporary password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This password will be sent to the user. They should change it after first login.
+                </p>
+              </div>
+
               <Button onClick={handleSendInvite} disabled={sending} className="w-full">
                 {sending ? 'Sending...' : 'Send Invite'}
               </Button>
@@ -304,6 +386,57 @@ const AdminInvites = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* User Management Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Current Admin Users
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {usersLoading ? (
+            <div className="py-10 text-center text-muted-foreground">Loading users...</div>
+          ) : users.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">
+              No admin users found.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {users.map((userProfile) => (
+                <div key={userProfile.id} className="border rounded-md p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <div className="font-medium">{userProfile.full_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Added {new Date(userProfile.created_at).toLocaleString('en-KE')}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="capitalize">
+                        {userProfile.role}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(isSuperAdmin || (userProfile.role !== 'admin' && userProfile.role !== 'superadmin')) && userProfile.user_id !== user?.id && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveUser(userProfile.user_id, userProfile.full_name)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

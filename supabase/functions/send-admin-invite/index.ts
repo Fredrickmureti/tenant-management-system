@@ -1,5 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Resend } from 'npm:resend@4.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,10 +19,10 @@ serve(async (req) => {
     const requestData = await req.json();
     console.log('Request data received:', JSON.stringify(requestData));
     
-    const { inviteId, email, fullName, role } = requestData;
-    console.log('Extracted fields:', { inviteId, email, fullName, role });
+    const { inviteId, email, fullName, role, temporaryPassword } = requestData;
+    console.log('Extracted fields:', { inviteId, email, fullName, role, hasPassword: !!temporaryPassword });
 
-    if (!email || !fullName || !role) {
+    if (!email || !fullName || !role || !temporaryPassword) {
       console.error('Missing required fields:', { email: !!email, fullName: !!fullName, role: !!role });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
@@ -35,6 +36,7 @@ serve(async (req) => {
     // Initialize Supabase client with service role
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
     
     if (!supabaseServiceKey || !supabaseUrl) {
       console.error('Missing Supabase configuration');
@@ -47,52 +49,63 @@ serve(async (req) => {
       );
     }
 
+    if (!resendApiKey) {
+      console.error('Missing Resend API key');
+      return new Response(
+        JSON.stringify({ error: 'Email service not configured' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const resend = new Resend(resendApiKey);
 
     // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
     
-    if (existingUser.user) {
-      console.log('User already exists:', existingUser.user.id);
+    const existingUserData = existingUser.users?.find(user => user.email === email);
+    
+    if (existingUserData) {
+      console.log('User already exists:', existingUserData.id);
       
       // Update their role if needed
       const { error: updateError } = await supabaseAdmin
         .from('profiles')
         .update({ role })
-        .eq('user_id', existingUser.user.id);
+        .eq('user_id', existingUserData.id);
         
       if (updateError) {
         console.error('Error updating user role:', updateError);
       }
-      
-      // Generate magic link for existing user
-      const { data: magicLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: email,
-        options: {
-          redirectTo: `${supabaseUrl.replace('.supabase.co', '')}.lovable.app`
-        }
-      });
 
-      if (linkError) {
-        console.error('Error generating magic link:', linkError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to generate login link' }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
+      // Send email with existing login credentials
+      try {
+        await resend.emails.send({
+          from: 'System Admin <onboarding@resend.dev>',
+          to: [email],
+          subject: `Your ${role} account is ready`,
+          html: `
+            <h1>Welcome back, ${fullName}!</h1>
+            <p>Your account has been updated with ${role} privileges.</p>
+            <p>You can log in using your existing credentials at:</p>
+            <p><a href="${supabaseUrl.replace('.supabase.co', '')}.lovable.app" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
+            <p>If you've forgotten your password, you can reset it using the "Forgot Password" link.</p>
+            <p>Best regards,<br>The Admin Team</p>
+          `,
+        });
+        console.log('Email sent to existing user');
+      } catch (emailError) {
+        console.error('Error sending email to existing user:', emailError);
       }
-
-      console.log('Magic link generated for existing user');
       
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'User already exists - magic link ready',
-          magicLink: magicLink.properties?.action_link,
-          userId: existingUser.user.id
+          message: 'User already exists - updated role and sent notification',
+          userId: existingUserData.id
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -100,11 +113,12 @@ serve(async (req) => {
       );
     }
 
-    // Create new user account
+    // Create new user account with password
     console.log('Creating new user account...');
     
     const { data: newUser, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
+      password: temporaryPassword,
       email_confirm: true, // Auto-confirm email
       user_metadata: {
         full_name: fullName,
@@ -125,33 +139,35 @@ serve(async (req) => {
 
     console.log('User created successfully:', newUser.user.id);
 
-    // Generate magic link for the new user
-    const { data: magicLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-      options: {
-        redirectTo: `${supabaseUrl.replace('.supabase.co', '')}.lovable.app`
-      }
-    });
-
-    if (linkError) {
-      console.error('Error generating magic link:', linkError);
-      return new Response(
-        JSON.stringify({ error: 'User created but failed to generate login link' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    // Send email with login credentials
+    try {
+      await resend.emails.send({
+        from: 'System Admin <onboarding@resend.dev>',
+        to: [email],
+        subject: `Welcome! Your ${role} account is ready`,
+        html: `
+          <h1>Welcome, ${fullName}!</h1>
+          <p>Your ${role} account has been created successfully.</p>
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h3>Your Login Credentials:</h3>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Temporary Password:</strong> ${temporaryPassword}</p>
+          </div>
+          <p><a href="${supabaseUrl.replace('.supabase.co', '')}.lovable.app" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
+          <p><strong>Important:</strong> Please change your password after your first login for security.</p>
+          <p>Best regards,<br>The Admin Team</p>
+        `,
+      });
+      console.log('Welcome email sent successfully');
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+      // Don't fail the whole process if email fails
     }
-
-    console.log('Magic link generated for new user');
 
     const successResponse = {
       success: true,
-      message: 'User account created and invite ready',
+      message: 'User account created and credentials sent',
       userId: newUser.user.id,
-      magicLink: magicLink.properties?.action_link,
       debug: {
         inviteId,
         email,
