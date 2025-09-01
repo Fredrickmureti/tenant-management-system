@@ -345,7 +345,7 @@ const Billing = () => {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="text-left border-b">
-                  <th className="py-2 pl-4 pr-2 sm:px-4 min-w-[120px] sticky left-0 bg-white z-10">Tenant</th>
+                  <th className="py-2 pl-4 pr-2 sm:px-4 min-w-[120px] sticky left-0 bg-background dark:bg-background z-10">Tenant</th>
                   <th className="py-2 px-2 sm:px-4">Unit</th>
                   <th className="py-2 px-2 sm:px-4">Units</th>
                   <th className="py-2 px-2 sm:px-4">Standing</th>
@@ -359,7 +359,7 @@ const Billing = () => {
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-b last:border-0">
-                    <td className="py-3 pl-4 pr-2 sm:px-4 font-medium sticky left-0 bg-white">
+                    <td className="py-3 pl-4 pr-2 sm:px-4 font-medium sticky left-0 bg-background dark:bg-background">
                       <div className="max-w-[100px] truncate">
                         {r.tenant?.name || '—'}
                       </div>
@@ -422,7 +422,7 @@ const Billing = () => {
       {/* Mobile stacked cards */}
       <div className="grid gap-4 sm:hidden">
         {filtered.map((r) => (
-          <div key={r.id} className="border rounded-lg p-4 bg-white shadow-sm space-y-2">
+          <div key={r.id} className="border rounded-lg p-4 bg-card dark:bg-card shadow-sm space-y-2">
             <div className="flex justify-between">
               <span className="font-semibold">Tenant</span>
               <span>{r.tenant?.name || '—'}</span>
