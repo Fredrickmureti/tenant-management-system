@@ -18,6 +18,7 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isPasswordResetSession, setIsPasswordResetSession] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -25,19 +26,15 @@ const ResetPassword = () => {
   const refreshToken = searchParams.get('refresh_token');
 
   useEffect(() => {
-    // If user is already logged in, redirect to dashboard
-    if (user) {
-      // Don't redirect, they might be resetting password while logged in
-    }
-
     // Set the session with tokens from URL if available
     if (accessToken && refreshToken) {
+      setIsPasswordResetSession(true);
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken
       });
     }
-  }, [user, accessToken, refreshToken]);
+  }, [accessToken, refreshToken]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,8 +92,8 @@ const ResetPassword = () => {
     }
   };
 
-  // If no access token and no user, show invalid link message
-  if (!accessToken && !user) {
+  // If no access token and this is not a password reset session, show invalid link message
+  if (!isPasswordResetSession && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
