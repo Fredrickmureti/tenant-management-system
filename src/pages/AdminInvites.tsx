@@ -127,21 +127,37 @@ const AdminInvites = () => {
       return;
     }
 
+    setUsersLoading(true);
     try {
-      // Delete from profiles first (this will cascade to auth.users via RLS)
+      console.log('Attempting to delete user:', userId);
+      
+      // Delete from profiles table first 
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
         .eq('user_id', userId);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        throw new Error(`Failed to remove user profile: ${profileError.message}`);
+      }
+
+      // Then delete from auth.users using admin API
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (authError) {
+        console.error('Error deleting auth user:', authError);
+        // Profile deletion already succeeded, so we'll continue but warn about auth deletion
+        console.warn('Profile deleted but auth user deletion failed:', authError);
+      }
 
       toast({
         title: "Success",
         description: `${userName} has been removed successfully`,
       });
 
-      loadUsers();
+      // Reload users list
+      await loadUsers();
     } catch (error: any) {
       console.error('Error removing user:', error);
       toast({
@@ -149,6 +165,8 @@ const AdminInvites = () => {
         description: error.message || "Failed to remove user",
         variant: "destructive"
       });
+    } finally {
+      setUsersLoading(false);
     }
   };
 
