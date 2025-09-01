@@ -114,7 +114,7 @@ const ResetPassword = () => {
             </Alert>
             <Button 
               className="w-full mt-4" 
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => window.location.href = '/tenant-auth'}
             >
               Back to Login
             </Button>
@@ -143,7 +143,7 @@ const ResetPassword = () => {
             </Alert>
             <Button 
               className="w-full mt-4" 
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => window.location.href = '/tenant-auth'}
             >
               Continue to Login
             </Button>
@@ -226,7 +226,7 @@ const ResetPassword = () => {
           <div className="mt-4 text-center">
             <Button 
               variant="link" 
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => window.location.href = '/tenant-auth'}
             >
               Back to Login
             </Button>
