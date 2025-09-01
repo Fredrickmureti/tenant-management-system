@@ -56,7 +56,8 @@ const AdminInvites = () => {
       const { data, error } = await supabase
         .from('admin_invites' as any)
         .select('*')
-        .neq('status', 'failed') // Filter out any failed invites that might still exist
+        // Show both pending and sent invites, but not failed ones (they should be auto-deleted)
+        .in('status', ['pending', 'sent', 'accepted'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -113,11 +114,37 @@ const AdminInvites = () => {
       });
 
       if (functionError) {
-        // Delete the invite instead of marking it as failed
-        await supabase
-          .from('admin_invites' as any)
-          .delete()
-          .eq('id', invite.id);
+        console.error('Function error:', functionError);
+        
+        // Try to delete the invite record, with fallback to marking as failed
+        try {
+          const { error: deleteError } = await supabase
+            .from('admin_invites' as any)
+            .delete()
+            .eq('id', invite.id);
+            
+          if (deleteError) {
+            console.error('Failed to delete invite:', deleteError);
+            // Fallback: mark as failed if deletion doesn't work
+            await supabase
+              .from('admin_invites' as any)
+              .update({ 
+                status: 'failed', 
+                error: functionError.context?.error || functionError.message || "Email sending failed"
+              })
+              .eq('id', invite.id);
+          }
+        } catch (deleteErr) {
+          console.error('Error during cleanup:', deleteErr);
+          // Fallback: mark as failed
+          await supabase
+            .from('admin_invites' as any)
+            .update({ 
+              status: 'failed', 
+              error: functionError.context?.error || functionError.message || "Email sending failed"
+            })
+            .eq('id', invite.id);
+        }
         
         // Extract better error message from the function response
         const errorMessage = functionError.context?.error || functionError.message || "Failed to send invite";
