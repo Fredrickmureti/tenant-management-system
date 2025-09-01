@@ -140,6 +140,21 @@ serve(async (req) => {
     if (!emailResponse.ok) {
       const errorData = await emailResponse.text();
       console.error('Resend API error response:', errorData);
+      
+      // Handle Resend domain verification error specifically
+      if (emailResponse.status === 403 && errorData.includes('verify a domain')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Email service requires domain verification. For testing, you can only send emails to dominicmugendi9@gmail.com, or verify a domain at resend.com/domains',
+            suggestion: 'Try using dominicmugendi9@gmail.com as the email address for testing'
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       throw new Error(`Resend API failed (${emailResponse.status}): ${errorData}`);
     }
 
