@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,26 +14,9 @@ serve(async (req) => {
 
   try {
     console.log('=== FUNCTION STARTED ===');
-    console.log('Request method:', req.method);
-    console.log('Request URL:', req.url);
     
-    // Test endpoint - just return success without doing anything
-    if (req.url.includes('test')) {
-      console.log('Test endpoint hit');
-      return new Response(
-        JSON.stringify({ success: true, message: 'Test endpoint working' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    let requestData;
-    try {
-      requestData = await req.json();
-      console.log('Request data received:', JSON.stringify(requestData));
-    } catch (e) {
-      console.error('Failed to parse JSON:', e);
-      throw new Error('Invalid JSON in request body');
-    }
+    const requestData = await req.json();
+    console.log('Request data received:', JSON.stringify(requestData));
     
     const { inviteId, email, fullName, role } = requestData;
     console.log('Extracted fields:', { inviteId, email, fullName, role });
@@ -48,20 +32,14 @@ serve(async (req) => {
       );
     }
 
-    // Check environment variables
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    // Initialize Supabase client with service role
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     
-    console.log('Environment check:');
-    console.log('- RESEND_API_KEY present:', !!resendApiKey);
-    console.log('- RESEND_API_KEY length:', resendApiKey ? resendApiKey.length : 0);
-    console.log('- SUPABASE_URL present:', !!supabaseUrl);
-    console.log('- SUPABASE_URL value:', supabaseUrl);
-    
-    if (!resendApiKey) {
-      console.error('RESEND_API_KEY not found');
+    if (!supabaseServiceKey || !supabaseUrl) {
+      console.error('Missing Supabase configuration');
       return new Response(
-        JSON.stringify({ error: 'Email service not configured - missing RESEND_API_KEY' }),
+        JSON.stringify({ error: 'Server configuration error' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -69,135 +47,120 @@ serve(async (req) => {
       );
     }
 
-    if (!supabaseUrl) {
-      console.error('SUPABASE_URL not found');
-      return new Response(
-        JSON.stringify({ error: 'SUPABASE_URL not configured' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Create the signup link
-    const signupUrl = `${supabaseUrl}/auth/v1/signup`;
-    const inviteLink = `${signupUrl}?email=${encodeURIComponent(email)}&full_name=${encodeURIComponent(fullName)}&role=${role}`;
-    console.log('Generated invite link:', inviteLink);
-
-    // Prepare email content
-    const emailSubject = `Invitation to join Water Billing System as ${role.charAt(0).toUpperCase() + role.slice(1)}`;
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">You're Invited to Join Water Billing System</h2>
-        <p>Hello ${fullName},</p>
-        <p>You have been invited to join the Water Billing System as a <strong>${role.charAt(0).toUpperCase() + role.slice(1)}</strong>.</p>
-        <p>To accept this invitation and create your account, please click the button below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${inviteLink}" 
-             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Accept Invitation
-          </a>
-        </div>
-        <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-        <p style="background-color: #f3f4f6; padding: 10px; border-radius: 4px; word-break: break-all;">
-          ${inviteLink}
-        </p>
-        <p>This invitation will expire in 7 days.</p>
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-        <p style="color: #6b7280; font-size: 14px;">
-          If you didn't expect this invitation, you can safely ignore this email.
-        </p>
-      </div>
-    `;
-
-    console.log('Preparing to send email to:', email);
-    console.log('Email subject:', emailSubject);
-
-    // Send email via Resend
-    const emailPayload = {
-      from: 'Water Billing System <onboarding@resend.dev>',
-      to: [email],
-      subject: emailSubject,
-      html: emailHtml,
-    };
+    // Check if user already exists
+    const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(email);
     
-    console.log('Email payload:', JSON.stringify(emailPayload, null, 2));
-
-    console.log('Making request to Resend API...');
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload),
-    });
-
-    console.log('Resend response status:', emailResponse.status);
-    console.log('Resend response headers:', Object.fromEntries(emailResponse.headers.entries()));
-
-    if (!emailResponse.ok) {
-      const errorData = await emailResponse.text();
-      console.error('Resend API error response:', errorData);
+    if (existingUser.user) {
+      console.log('User already exists:', existingUser.user.id);
       
-      // Handle all Resend API errors gracefully - return 4xx instead of throwing
-      let errorMessage = 'Email service error';
-      let statusCode = 400;
-      
-      if (emailResponse.status === 403) {
-        if (errorData.includes('verify a domain') || errorData.includes('testing emails')) {
-          errorMessage = 'Email service requires domain verification. For testing, you can only send emails to dominicmugendi9@gmail.com, or verify a domain at resend.com/domains';
-          statusCode = 403;
-        } else if (errorData.includes('Client blocked')) {
-          errorMessage = 'Email sending blocked by security filter. Please verify your domain at resend.com/domains';
-          statusCode = 403;
-        } else {
-          errorMessage = 'Email sending permission denied. Verify your domain or API key.';
-          statusCode = 403;
-        }
-      } else if (emailResponse.status === 429) {
-        errorMessage = 'Email sending rate limit exceeded. Please try again later.';
-        statusCode = 429;
-      } else if (emailResponse.status === 422) {
-        errorMessage = 'Invalid email address or content format.';
-        statusCode = 422;
-      } else {
-        errorMessage = `Email service error (${emailResponse.status}): ${errorData}`;
-        statusCode = 400;
+      // Update their role if needed
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({ role })
+        .eq('user_id', existingUser.user.id);
+        
+      if (updateError) {
+        console.error('Error updating user role:', updateError);
       }
       
+      // Generate magic link for existing user
+      const { data: magicLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: email,
+        options: {
+          redirectTo: `${supabaseUrl.replace('.supabase.co', '')}.lovable.app`
+        }
+      });
+
+      if (linkError) {
+        console.error('Error generating magic link:', linkError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to generate login link' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      console.log('Magic link generated for existing user');
+      
       return new Response(
-        JSON.stringify({ 
-          error: errorMessage,
-          code: emailResponse.status,
-          details: errorData,
-          suggestion: emailResponse.status === 403 ? 'Try using dominicmugendi9@gmail.com for testing' : undefined
+        JSON.stringify({
+          success: true,
+          message: 'User already exists - magic link ready',
+          magicLink: magicLink.properties?.action_link,
+          userId: existingUser.user.id
         }),
         { 
-          status: statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
 
-    const emailResult = await emailResponse.json();
-    console.log('Email sent successfully:', emailResult);
+    // Create new user account
+    console.log('Creating new user account...');
+    
+    const { data: newUser, error: userError } = await supabaseAdmin.auth.admin.createUser({
+      email: email,
+      email_confirm: true, // Auto-confirm email
+      user_metadata: {
+        full_name: fullName,
+        role: role
+      }
+    });
+
+    if (userError) {
+      console.error('Error creating user:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to create user account' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('User created successfully:', newUser.user.id);
+
+    // Generate magic link for the new user
+    const { data: magicLink, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email,
+      options: {
+        redirectTo: `${supabaseUrl.replace('.supabase.co', '')}.lovable.app`
+      }
+    });
+
+    if (linkError) {
+      console.error('Error generating magic link:', linkError);
+      return new Response(
+        JSON.stringify({ error: 'User created but failed to generate login link' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('Magic link generated for new user');
 
     const successResponse = {
       success: true,
-      message: 'Invitation sent successfully',
-      emailId: emailResult.id,
+      message: 'User account created and invite ready',
+      userId: newUser.user.id,
+      magicLink: magicLink.properties?.action_link,
       debug: {
         inviteId,
         email,
         fullName,
-        role,
-        inviteLink
+        role
       }
     };
     
-    console.log('Returning success response:', successResponse);
+    console.log('Returning success response');
 
     return new Response(
       JSON.stringify(successResponse),

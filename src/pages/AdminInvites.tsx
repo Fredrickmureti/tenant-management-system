@@ -104,7 +104,7 @@ const AdminInvites = () => {
       const invite = inviteData as unknown as AdminInvite;
 
       // Then send the invite email
-      const { error: functionError } = await supabase.functions.invoke('send-admin-invite', {
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('send-admin-invite', {
         body: {
           inviteId: invite.id,
           email: form.email,
@@ -166,10 +166,35 @@ const AdminInvites = () => {
         .update({ status: 'sent' })
         .eq('id', invite.id);
 
-      toast({
-        title: "Success",
-        description: `Invite sent to ${form.email}`
-      });
+      // Show success with magic link
+      const magicLink = functionData?.magicLink;
+      if (magicLink) {
+        toast({
+          title: "User account created!",
+          description: `Account created for ${form.email}. You can share this login link with them.`,
+        });
+        
+        // Copy magic link to clipboard
+        try {
+          await navigator.clipboard.writeText(magicLink);
+          toast({
+            title: "Login link copied!",
+            description: "The magic login link has been copied to your clipboard. Share it with the invited user.",
+          });
+        } catch (err) {
+          console.error('Failed to copy to clipboard:', err);
+          // Show the link in the UI if clipboard fails
+          toast({
+            title: "Magic Link Ready",
+            description: `Magic link: ${magicLink}`,
+          });
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: `User account created for ${form.email}`
+        });
+      }
 
       setForm({ email: '', full_name: '', role: 'clerk' });
       setIsDialogOpen(false);
