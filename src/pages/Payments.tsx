@@ -289,7 +289,7 @@ const PaymentForm = ({
 								</div>
 								<div>
 									<span className="text-muted-foreground">Total Due:</span>
-									<div className="font-medium">{formatKES((currentBillInfo.bill_amount || 0) + (currentBillInfo.previous_balance || 0))}</div>
+									<div className="font-medium">{formatKES(currentBillInfo.bill_amount || 0)}</div>
 								</div>
 								<div>
 									<span className="text-muted-foreground">Paid So Far:</span>

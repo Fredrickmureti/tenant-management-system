@@ -243,9 +243,9 @@ const Billing = () => {
           rate_per_unit: formData.rate_per_unit,
           standing_charge: formData.standing_charge,
           paid_amount: 0,
-          previous_balance: 0,
           bill_date: new Date().toISOString(),
           due_date: formData.due_date
+          // previous_balance will be automatically set by the database trigger
         })
 
       if (error) {
