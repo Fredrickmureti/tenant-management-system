@@ -83,7 +83,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Water Billing System <noreply@yourdomain.com>',
+        from: 'Water Billing System <onboarding@resend.dev>',
         to: [email],
         subject: emailSubject,
         html: emailHtml,
