@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          error: string | null
+          full_name: string | null
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["user_role"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          error?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by: string
+          role: Database["public"]["Enums"]["user_role"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          error?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_role: Database["public"]["Enums"]["user_role"]
+          changes: Json | null
+          created_at: string
+          id: string
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_role: Database["public"]["Enums"]["user_role"]
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_role?: Database["public"]["Enums"]["user_role"]
+          changes?: Json | null
+          created_at?: string
+          id?: string
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       billing_cycles: {
         Row: {
           bill_amount: number | null
