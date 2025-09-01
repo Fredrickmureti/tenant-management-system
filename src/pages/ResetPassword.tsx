@@ -25,14 +25,26 @@ const ResetPassword = () => {
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
 
+  // Log all URL parameters for debugging
+  console.log('ResetPassword component loaded');
+  console.log('URL search params:', window.location.search);
+  console.log('Access token:', accessToken ? 'present' : 'not present');
+  console.log('Refresh token:', refreshToken ? 'present' : 'not present');
+  console.log('Current user:', user ? 'logged in' : 'not logged in');
+
   useEffect(() => {
     // Set the session with tokens from URL if available
     if (accessToken && refreshToken) {
+      console.log('Password reset tokens found, setting session');
       setIsPasswordResetSession(true);
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken
       });
+    } else if (accessToken || refreshToken) {
+      console.log('Partial tokens found:', { accessToken: !!accessToken, refreshToken: !!refreshToken });
+      // Even with partial tokens, this is likely a password reset attempt
+      setIsPasswordResetSession(true);
     }
   }, [accessToken, refreshToken]);
 
@@ -92,8 +104,8 @@ const ResetPassword = () => {
     }
   };
 
-  // If no access token and this is not a password reset session, show invalid link message
-  if (!isPasswordResetSession && !user) {
+  // If no tokens at all and not a password reset session, show invalid link message
+  if (!isPasswordResetSession && !accessToken && !refreshToken && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
