@@ -42,14 +42,14 @@ const Layout = () => {
   }
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: BarChart3 },
-    { name: 'Tenants', href: '/tenants', icon: Users },
-    { name: 'Meter Readings', href: '/meter-readings', icon: Droplets },
-    { name: 'Billing', href: '/billing', icon: Receipt },
-    { name: 'Payments', href: '/payments', icon: DollarSign },
-    { name: 'Communications', href: '/communications', icon: MessageSquare },
-    ...(canManageAdmins ? [{ name: 'Admin Invites', href: '/admin-invites', icon: UserPlus }] : []),
-    ...(canViewAuditLogs ? [{ name: 'Audit Logs', href: '/audit-logs', icon: Eye }] : []),
+    { name: 'Dashboard', href: '/admin', icon: BarChart3 },
+    { name: 'Tenants', href: '/admin/tenants', icon: Users },
+    { name: 'Meter Readings', href: '/admin/meter-readings', icon: Droplets },
+    { name: 'Billing', href: '/admin/billing', icon: Receipt },
+    { name: 'Payments', href: '/admin/payments', icon: DollarSign },
+    { name: 'Communications', href: '/admin/communications', icon: MessageSquare },
+    ...(canManageAdmins ? [{ name: 'Admin Invites', href: '/admin/admin-invites', icon: UserPlus }] : []),
+    ...(canViewAuditLogs ? [{ name: 'Audit Logs', href: '/admin/audit-logs', icon: Eye }] : []),
   ];
 
   const handleSignOut = async () => {
