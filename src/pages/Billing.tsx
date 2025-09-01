@@ -147,13 +147,10 @@ const Billing = () => {
           year: year,
           previous_reading: formData.previous_reading,
           current_reading: formData.current_reading,
-          units_used: units_used,
           rate_per_unit: formData.rate_per_unit,
           standing_charge: formData.standing_charge,
-          bill_amount: bill_amount,
           paid_amount: 0,
           previous_balance: 0,
-          current_balance: bill_amount,
           bill_date: new Date().toISOString(),
           due_date: formData.due_date
         })
@@ -210,11 +207,8 @@ const Billing = () => {
         .update({
           previous_reading: formData.previous_reading,
           current_reading: formData.current_reading,
-          units_used: units_used,
           rate_per_unit: formData.rate_per_unit,
           standing_charge: formData.standing_charge,
-          bill_amount: bill_amount,
-          current_balance: current_balance,
           due_date: formData.due_date
         })
         .eq('id', editingBill.id)
