@@ -8,67 +8,67 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
+      <div className="max-w-3xl w-full">
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-6">
             <div className="p-4 rounded-full bg-blue-100">
               <DropletIcon className="h-12 w-12 text-blue-600" />
             </div>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Water Management System
+            Water Management Portal
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Streamline your water billing, tenant management, and payment tracking with our comprehensive platform.
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+            Access your water bills, view outstanding balances, and manage your account with ease.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow cursor-pointer" 
+        {/* Main Tenant Portal Card */}
+        <div className="max-w-lg mx-auto mb-8">
+          <Card className="bg-white shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 border-blue-200" 
                 onClick={() => navigate('/tenant-auth')}>
-            <CardHeader className="text-center pb-4">
-              <div className="flex items-center justify-center mb-3">
-                <div className="p-3 rounded-full bg-green-100">
-                  <UserCheck className="h-8 w-8 text-green-600" />
+            <CardHeader className="text-center pb-6">
+              <div className="flex items-center justify-center mb-4">
+                <div className="p-4 rounded-full bg-blue-100">
+                  <UserCheck className="h-10 w-10 text-blue-600" />
                 </div>
               </div>
-              <CardTitle className="text-xl">Tenant Portal</CardTitle>
+              <CardTitle className="text-2xl text-blue-900">Tenant Portal</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-gray-600 mb-4">
-                Access your water bills, view outstanding balances, and track your payment history.
+              <p className="text-gray-600 mb-6 text-lg">
+                Sign in to view your water bills, payment history, and account details.
               </p>
-              <Button className="w-full" onClick={(e) => {
-                e.stopPropagation();
-                navigate('/tenant-auth');
-              }}>
-                Tenant Login
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  size="lg" 
+                  className="w-full text-lg py-3" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/tenant-auth');
+                  }}
+                >
+                  Access Tenant Portal
+                </Button>
+                <p className="text-sm text-gray-500">
+                  Don't have an account? Sign up to get started
+                </p>
+              </div>
             </CardContent>
           </Card>
+        </div>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-                onClick={() => navigate('/auth')}>
-            <CardHeader className="text-center pb-4">
-              <div className="flex items-center justify-center mb-3">
-                <div className="p-3 rounded-full bg-blue-100">
-                  <Settings className="h-8 w-8 text-blue-600" />
-                </div>
-              </div>
-              <CardTitle className="text-xl">Admin Portal</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-gray-600 mb-4">
-                Manage tenants, create bills, process payments, and oversee the entire system.
-              </p>
-              <Button variant="outline" className="w-full" onClick={(e) => {
-                e.stopPropagation();
-                navigate('/auth');
-              }}>
-                Admin Login
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Small Admin Link */}
+        <div className="text-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-500 hover:text-gray-700 text-sm"
+            onClick={() => navigate('/auth')}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Administrator Access
+          </Button>
         </div>
 
         <div className="text-center mt-8">

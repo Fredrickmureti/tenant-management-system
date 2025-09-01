@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
+import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/tenant-auth" element={<TenantAuth />} />
@@ -44,7 +46,7 @@ const App = () => (
                 <Route path="payments" element={<TenantPayments />} />
                 <Route path="profile" element={<TenantProfile />} />
               </Route>
-              <Route path="/" element={<Layout />}>
+              <Route path="/admin" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="tenants" element={<Tenants />} />
                 <Route path="meter-readings" element={<MeterReadings />} />

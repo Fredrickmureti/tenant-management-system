@@ -574,11 +574,11 @@ const TenantAuth = () => {
 
           <div className="mt-4 text-center">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => navigate('/')}
               className="text-sm"
             >
-              Admin Portal
+              Back to Main Page
             </Button>
           </div>
         </CardContent>
