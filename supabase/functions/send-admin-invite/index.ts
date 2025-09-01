@@ -64,7 +64,19 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
 
     // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
+    console.log('Checking for existing user with email:', email);
+    const { data: existingUser, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (listUsersError) {
+      console.error('Error listing users:', listUsersError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to check existing users' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     const existingUserData = existingUser.users?.find(user => user.email === email);
     
@@ -83,22 +95,29 @@ serve(async (req) => {
 
       // Send email with existing login credentials
       try {
-        await resend.emails.send({
-          from: 'System Admin <onboarding@resend.dev>',
+        const emailResponse = await resend.emails.send({
+          from: 'Admin System <onboarding@resend.dev>',
           to: [email],
           subject: `Your ${role} account is ready`,
           html: `
             <h1>Welcome back, ${fullName}!</h1>
             <p>Your account has been updated with ${role} privileges.</p>
             <p>You can log in using your existing credentials at:</p>
-            <p><a href="${supabaseUrl.replace('.supabase.co', '')}.lovable.app" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
+            <p><a href="https://fae818c2-826c-4cf6-bf3b-523dd7333715.sandbox.lovable.dev" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
             <p>If you've forgotten your password, you can reset it using the "Forgot Password" link.</p>
             <p>Best regards,<br>The Admin Team</p>
           `,
         });
-        console.log('Email sent to existing user');
+        console.log('Email sent to existing user successfully:', emailResponse);
       } catch (emailError) {
         console.error('Error sending email to existing user:', emailError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to send email notification' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
       }
       
       return new Response(
@@ -141,8 +160,8 @@ serve(async (req) => {
 
     // Send email with login credentials
     try {
-      await resend.emails.send({
-        from: 'System Admin <onboarding@resend.dev>',
+      const emailResponse = await resend.emails.send({
+        from: 'Admin System <onboarding@resend.dev>',
         to: [email],
         subject: `Welcome! Your ${role} account is ready`,
         html: `
@@ -153,15 +172,21 @@ serve(async (req) => {
             <p><strong>Email:</strong> ${email}</p>
             <p><strong>Temporary Password:</strong> ${temporaryPassword}</p>
           </div>
-          <p><a href="${supabaseUrl.replace('.supabase.co', '')}.lovable.app" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
+          <p><a href="https://fae818c2-826c-4cf6-bf3b-523dd7333715.sandbox.lovable.dev" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
           <p><strong>Important:</strong> Please change your password after your first login for security.</p>
           <p>Best regards,<br>The Admin Team</p>
         `,
       });
-      console.log('Welcome email sent successfully');
+      console.log('Welcome email sent successfully:', emailResponse);
     } catch (emailError) {
       console.error('Error sending welcome email:', emailError);
-      // Don't fail the whole process if email fails
+      return new Response(
+        JSON.stringify({ error: 'Failed to send welcome email' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     const successResponse = {
