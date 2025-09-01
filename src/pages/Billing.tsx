@@ -526,18 +526,18 @@ const Billing = () => {
 				</Dialog>
 			)}
 			
-			<Card>
+			<Card className="overflow-hidden">
 				<CardHeader>
 					<CardTitle>Billing for {months[month - 1]} {year}</CardTitle>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="p-0 sm:p-6">
 					{loading ? (
-						<div className="py-10 text-center text-muted-foreground">
+						<div className="py-10 px-6 text-center text-muted-foreground">
 							<Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
 							<p>Loading billing data...</p>
 						</div>
 					) : filtered.length === 0 ? (
-						<div className="py-10 text-center text-muted-foreground">
+						<div className="py-10 px-6 text-center text-muted-foreground">
 							<p>No bills found for {months[month - 1]} {year}</p>
 							<Button 
 								variant="outline" 
@@ -549,35 +549,42 @@ const Billing = () => {
 							</Button>
 						</div>
 					) : (
-						<div className="overflow-x-auto">
-							<table className="w-full text-sm min-w-[800px]">
-								<thead>
-									<tr className="text-left border-b">
-										<th className="py-2 pr-2 sm:pr-4 min-w-[100px]">Tenant</th>
-										<th className="py-2 pr-2 sm:pr-4 min-w-[60px]">Unit</th>
-										<th className="py-2 pr-2 sm:pr-4 min-w-[70px]">Units</th>
-										<th className="py-2 pr-2 sm:pr-4 min-w-[80px]">Standing</th>
-										<th className="py-2 pr-2 sm:pr-4 min-w-[80px]">Billed</th>
-										<th className="py-2 pr-2 sm:pr-4 min-w-[70px]">Paid</th>
-										<th className="py-2 pr-2 sm:pr-4 min-w-[80px]">Balance</th>
-										<th className="py-2 pr-2 sm:pr-4 min-w-[90px]">Due Date</th>
-										<th className="py-2 text-right min-w-[100px]">Actions</th>
-									</tr>
-								</thead>
+						<div className="relative">
+							{/* Break out of card constraints on mobile */}
+							<div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+								<div className="inline-block min-w-full align-middle">
+									<table className="min-w-[800px] sm:min-w-full text-sm border-collapse">
+										<thead>
+											<tr className="text-left border-b">
+												<th className="py-2 pl-4 pr-2 sm:px-4 min-w-[120px] sticky left-0 bg-white z-10">Tenant</th>
+												<th className="py-2 px-2 sm:px-4 min-w-[60px]">Unit</th>
+												<th className="py-2 px-2 sm:px-4 min-w-[80px]">Units</th>
+												<th className="py-2 px-2 sm:px-4 min-w-[90px]">Standing</th>
+												<th className="py-2 px-2 sm:px-4 min-w-[90px]">Billed</th>
+												<th className="py-2 px-2 sm:px-4 min-w-[80px]">Paid</th>
+												<th className="py-2 px-2 sm:px-4 min-w-[90px]">Balance</th>
+												<th className="py-2 px-2 sm:px-4 min-w-[100px]">Due Date</th>
+												<th className="py-2 pl-2 pr-4 sm:px-4 text-right min-w-[100px]">Actions</th>
+											</tr>
+										</thead>
 								<tbody>
 									{filtered.map((r) => (
 										<tr key={r.id} className="border-b last:border-0">
-											<td className="py-3 pr-2 sm:pr-4 font-medium truncate max-w-[100px]">{r.tenant?.name || '—'}</td>
-											<td className="py-3 pr-2 sm:pr-4">{r.tenant?.house_unit_number || '—'}</td>
-											<td className="py-3 pr-2 sm:pr-4">{r.units_used} m³</td>
-											<td className="py-3 pr-2 sm:pr-4">{formatKES(r.standing_charge || 100)}</td>
-											<td className="py-3 pr-2 sm:pr-4">{formatKES(r.bill_amount)}</td>
-											<td className="py-3 pr-2 sm:pr-4">{formatKES(r.paid_amount)}</td>
-											<td className={`py-3 pr-2 sm:pr-4 ${r.current_balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+											<td className="py-3 pl-4 pr-2 sm:px-4 font-medium sticky left-0 bg-white">
+												<div className="max-w-[100px] truncate">
+													{r.tenant?.name || '—'}
+												</div>
+											</td>
+											<td className="py-3 px-2 sm:px-4">{r.tenant?.house_unit_number || '—'}</td>
+											<td className="py-3 px-2 sm:px-4">{r.units_used} m³</td>
+											<td className="py-3 px-2 sm:px-4">{formatKES(r.standing_charge || 100)}</td>
+											<td className="py-3 px-2 sm:px-4">{formatKES(r.bill_amount)}</td>
+											<td className="py-3 px-2 sm:px-4">{formatKES(r.paid_amount)}</td>
+											<td className={`py-3 px-2 sm:px-4 ${r.current_balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
 												{formatKES(r.current_balance)}
 											</td>
-											<td className="py-3 pr-2 sm:pr-4">{new Date(r.due_date).toLocaleDateString()}</td>
-											<td className="py-3 text-right">
+											<td className="py-3 px-2 sm:px-4">{new Date(r.due_date).toLocaleDateString()}</td>
+											<td className="py-3 pl-2 pr-4 sm:px-4 text-right">
 												<div className="flex justify-end gap-1">
 													<Button 
 														variant="ghost" 
@@ -621,6 +628,8 @@ const Billing = () => {
 								</tbody>
 							</table>
 						</div>
+					</div>
+				</div>
 					)}
 				</CardContent>
 			</Card>
