@@ -141,21 +141,44 @@ serve(async (req) => {
       const errorData = await emailResponse.text();
       console.error('Resend API error response:', errorData);
       
-      // Handle Resend domain verification error specifically
-      if (emailResponse.status === 403 && errorData.includes('verify a domain')) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Email service requires domain verification. For testing, you can only send emails to dominicmugendi9@gmail.com, or verify a domain at resend.com/domains',
-            suggestion: 'Try using dominicmugendi9@gmail.com as the email address for testing'
-          }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
+      // Handle all Resend API errors gracefully - return 4xx instead of throwing
+      let errorMessage = 'Email service error';
+      let statusCode = 400;
+      
+      if (emailResponse.status === 403) {
+        if (errorData.includes('verify a domain') || errorData.includes('testing emails')) {
+          errorMessage = 'Email service requires domain verification. For testing, you can only send emails to dominicmugendi9@gmail.com, or verify a domain at resend.com/domains';
+          statusCode = 403;
+        } else if (errorData.includes('Client blocked')) {
+          errorMessage = 'Email sending blocked by security filter. Please verify your domain at resend.com/domains';
+          statusCode = 403;
+        } else {
+          errorMessage = 'Email sending permission denied. Verify your domain or API key.';
+          statusCode = 403;
+        }
+      } else if (emailResponse.status === 429) {
+        errorMessage = 'Email sending rate limit exceeded. Please try again later.';
+        statusCode = 429;
+      } else if (emailResponse.status === 422) {
+        errorMessage = 'Invalid email address or content format.';
+        statusCode = 422;
+      } else {
+        errorMessage = `Email service error (${emailResponse.status}): ${errorData}`;
+        statusCode = 400;
       }
       
-      throw new Error(`Resend API failed (${emailResponse.status}): ${errorData}`);
+      return new Response(
+        JSON.stringify({ 
+          error: errorMessage,
+          code: emailResponse.status,
+          details: errorData,
+          suggestion: emailResponse.status === 403 ? 'Try using dominicmugendi9@gmail.com for testing' : undefined
+        }),
+        { 
+          status: statusCode,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     const emailResult = await emailResponse.json();

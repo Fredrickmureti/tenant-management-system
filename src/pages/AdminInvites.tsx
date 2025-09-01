@@ -56,6 +56,7 @@ const AdminInvites = () => {
       const { data, error } = await supabase
         .from('admin_invites' as any)
         .select('*')
+        .neq('status', 'failed') // Filter out any failed invites that might still exist
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -112,16 +113,24 @@ const AdminInvites = () => {
       });
 
       if (functionError) {
-        // Update invite status to failed
+        // Delete the invite instead of marking it as failed
         await supabase
           .from('admin_invites' as any)
-          .update({ 
-            status: 'failed', 
-            error: functionError.message 
-          })
+          .delete()
           .eq('id', invite.id);
         
-        throw functionError;
+        // Extract better error message from the function response
+        const errorMessage = functionError.context?.error || functionError.message || "Failed to send invite";
+        
+        toast({
+          title: "Failed to send invite",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        
+        // Refresh the list and return early
+        loadInvites();
+        return;
       }
 
       // Update invite status to sent
@@ -146,6 +155,8 @@ const AdminInvites = () => {
         description: error.message || "Failed to send invite",
         variant: "destructive"
       });
+      // Always refresh the list to ensure it's current
+      loadInvites();
     } finally {
       setSending(false);
     }
