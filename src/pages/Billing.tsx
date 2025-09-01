@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { supabase } from '@/integrations/supabase/client'
 import { formatKES } from '@/lib/utils'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -58,6 +59,16 @@ const Billing = () => {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingBill, setEditingBill] = useState<(Billing & { tenant: Tenant | null }) | undefined>(undefined)
   const [allTenants, setAllTenants] = useState<Tenant[]>([])
+  
+  // Form data state
+  const [formData, setFormData] = useState({
+    tenant_id: '',
+    previous_reading: 0,
+    current_reading: 0,
+    rate_per_unit: 0,
+    standing_charge: 100,
+    due_date: ''
+  })
 
   const fetchData = async () => {
     setLoading(true)
@@ -98,13 +109,171 @@ const Billing = () => {
 
       if (error) {
         console.error('Error deleting bill:', error)
+        toast({
+          title: "Error",
+          description: "Failed to delete billing record",
+          variant: "destructive"
+        })
         return
       }
+      toast({
+        title: "Success",
+        description: "Billing record deleted successfully"
+      })
       await fetchData()
     } catch (err) {
       console.error('Error deleting bill:', err)
+      toast({
+        title: "Error", 
+        description: "Failed to delete billing record",
+        variant: "destructive"
+      })
     }
   }
+
+  const handleCreateBill = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsProcessing(true)
+    
+    try {
+      const units_used = formData.current_reading - formData.previous_reading
+      const bill_amount = (units_used * formData.rate_per_unit) + formData.standing_charge
+      
+      const { error } = await supabase
+        .from('billing_cycles')
+        .insert({
+          tenant_id: formData.tenant_id,
+          month: month,
+          year: year,
+          previous_reading: formData.previous_reading,
+          current_reading: formData.current_reading,
+          units_used: units_used,
+          rate_per_unit: formData.rate_per_unit,
+          standing_charge: formData.standing_charge,
+          bill_amount: bill_amount,
+          paid_amount: 0,
+          previous_balance: 0,
+          current_balance: bill_amount,
+          bill_date: new Date().toISOString(),
+          due_date: formData.due_date
+        })
+
+      if (error) {
+        console.error('Error creating bill:', error)
+        toast({
+          title: "Error",
+          description: "Failed to create billing record",
+          variant: "destructive"
+        })
+        return
+      }
+
+      toast({
+        title: "Success",
+        description: "Billing record created successfully"
+      })
+      setShowAddDialog(false)
+      setFormData({
+        tenant_id: '',
+        previous_reading: 0,
+        current_reading: 0,
+        rate_per_unit: 0,
+        standing_charge: 100,
+        due_date: ''
+      })
+      await fetchData()
+    } catch (err) {
+      console.error('Error creating bill:', err)
+      toast({
+        title: "Error",
+        description: "Failed to create billing record", 
+        variant: "destructive"
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleUpdateBill = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBill) return
+    
+    setIsProcessing(true)
+    
+    try {
+      const units_used = formData.current_reading - formData.previous_reading
+      const bill_amount = (units_used * formData.rate_per_unit) + formData.standing_charge
+      const current_balance = bill_amount - editingBill.paid_amount
+      
+      const { error } = await supabase
+        .from('billing_cycles')
+        .update({
+          previous_reading: formData.previous_reading,
+          current_reading: formData.current_reading,
+          units_used: units_used,
+          rate_per_unit: formData.rate_per_unit,
+          standing_charge: formData.standing_charge,
+          bill_amount: bill_amount,
+          current_balance: current_balance,
+          due_date: formData.due_date
+        })
+        .eq('id', editingBill.id)
+
+      if (error) {
+        console.error('Error updating bill:', error)
+        toast({
+          title: "Error",
+          description: "Failed to update billing record",
+          variant: "destructive"
+        })
+        return
+      }
+
+      toast({
+        title: "Success", 
+        description: "Billing record updated successfully"
+      })
+      setEditingBill(undefined)
+      await fetchData()
+    } catch (err) {
+      console.error('Error updating bill:', err)
+      toast({
+        title: "Error",
+        description: "Failed to update billing record",
+        variant: "destructive"
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // Initialize form data when editing
+  useEffect(() => {
+    if (editingBill) {
+      setFormData({
+        tenant_id: editingBill.tenant_id,
+        previous_reading: editingBill.previous_reading,
+        current_reading: editingBill.current_reading,
+        rate_per_unit: editingBill.rate_per_unit,
+        standing_charge: editingBill.standing_charge,
+        due_date: editingBill.due_date.split('T')[0] // Format date for input
+      })
+    }
+  }, [editingBill])
+
+  // Reset form when opening add dialog
+  useEffect(() => {
+    if (showAddDialog) {
+      setFormData({
+        tenant_id: '',
+        previous_reading: 0,
+        current_reading: 0,
+        rate_per_unit: 0,
+        standing_charge: 100,
+        due_date: ''
+      })
+    }
+  }, [showAddDialog])
 
   const filtered = rows.filter(r =>
     `${r.tenant?.name || ''}`.toLowerCase().includes(query.toLowerCase())
@@ -337,6 +506,185 @@ const Billing = () => {
 </CardContent>
 
       </Card>
+
+      {/* Add New Bill Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Bill</DialogTitle>
+            <DialogDescription>
+              Create a new billing record for {months[month - 1]} {year}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateBill} className="space-y-4">
+            <div>
+              <Label htmlFor="tenant">Tenant</Label>
+              <Select value={formData.tenant_id} onValueChange={(value) => setFormData(prev => ({ ...prev, tenant_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tenant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allTenants.map(tenant => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      {tenant.name} - Unit {tenant.house_unit_number}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="previous_reading">Previous Reading</Label>
+                <Input
+                  id="previous_reading"
+                  type="number"
+                  value={formData.previous_reading}
+                  onChange={(e) => setFormData(prev => ({ ...prev, previous_reading: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="current_reading">Current Reading</Label>
+                <Input
+                  id="current_reading"
+                  type="number"
+                  value={formData.current_reading}
+                  onChange={(e) => setFormData(prev => ({ ...prev, current_reading: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="rate_per_unit">Rate per Unit (KES)</Label>
+                <Input
+                  id="rate_per_unit"
+                  type="number"
+                  step="0.01"
+                  value={formData.rate_per_unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, rate_per_unit: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="standing_charge">Standing Charge (KES)</Label>
+                <Input
+                  id="standing_charge"
+                  type="number"
+                  step="0.01"
+                  value={formData.standing_charge}
+                  onChange={(e) => setFormData(prev => ({ ...prev, standing_charge: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="due_date">Due Date</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isProcessing}>
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Create Bill
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Bill Dialog */}
+      <Dialog open={!!editingBill} onOpenChange={(open) => !open && setEditingBill(undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Bill</DialogTitle>
+            <DialogDescription>
+              Edit billing record for {editingBill?.tenant?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateBill} className="space-y-4">
+            <div>
+              <Label>Tenant</Label>
+              <div className="p-2 bg-gray-100 rounded">
+                {editingBill?.tenant?.name} - Unit {editingBill?.tenant?.house_unit_number}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_previous_reading">Previous Reading</Label>
+                <Input
+                  id="edit_previous_reading"
+                  type="number"
+                  value={formData.previous_reading}
+                  onChange={(e) => setFormData(prev => ({ ...prev, previous_reading: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_current_reading">Current Reading</Label>
+                <Input
+                  id="edit_current_reading"
+                  type="number"
+                  value={formData.current_reading}
+                  onChange={(e) => setFormData(prev => ({ ...prev, current_reading: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_rate_per_unit">Rate per Unit (KES)</Label>
+                <Input
+                  id="edit_rate_per_unit"
+                  type="number"
+                  step="0.01"
+                  value={formData.rate_per_unit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, rate_per_unit: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_standing_charge">Standing Charge (KES)</Label>
+                <Input
+                  id="edit_standing_charge"
+                  type="number"
+                  step="0.01"
+                  value={formData.standing_charge}
+                  onChange={(e) => setFormData(prev => ({ ...prev, standing_charge: Number(e.target.value) }))}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit_due_date">Due Date</Label>
+              <Input
+                id="edit_due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditingBill(undefined)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isProcessing}>
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Update Bill
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
