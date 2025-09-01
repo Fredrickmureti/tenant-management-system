@@ -532,7 +532,7 @@ const TenantAuth = () => {
             </Button>
           </form>
           
-          <div className="mt-6 text-center">
+          <div className="mt-6 space-y-2 text-center">
             <Button
               variant="link"
               onClick={() => {
@@ -570,6 +570,18 @@ const TenantAuth = () => {
                 : "Don't have an account? Sign up"
               }
             </Button>
+            
+            {!isSignUp && (
+              <div>
+                <Button
+                  variant="link"
+                  onClick={() => navigate('/password-reset')}
+                  className="text-sm text-muted-foreground"
+                >
+                  Forgot your password?
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 text-center">

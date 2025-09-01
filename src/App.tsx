@@ -18,7 +18,8 @@ import Overview from "@/pages/tenant/Overview";
 import TenantBills from "@/pages/tenant/Bills";
 import TenantPayments from "@/pages/tenant/Payments";
 import TenantProfile from "@/pages/tenant/Profile";
-import TenantAuth from "./pages/TenantAuth";
+import TenantAuth from '@/pages/TenantAuth';
+import PasswordReset from '@/pages/PasswordReset';
 import MeterReadings from "./pages/MeterReadings";
 import AdminInvites from "./pages/AdminInvites";
 import AuditLogs from "./pages/AuditLogs";
@@ -39,7 +40,8 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/tenant-auth" element={<TenantAuth />} />
+        <Route path="/tenant-auth" element={<TenantAuth />} />
+        <Route path="/password-reset" element={<PasswordReset />} />
               <Route path="/tenant" element={<TenantLayout />}>
                 <Route index element={<Overview />} />
                 <Route path="bills" element={<TenantBills />} />

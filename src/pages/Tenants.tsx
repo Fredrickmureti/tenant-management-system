@@ -108,6 +108,11 @@ const TenantForm = ({
 						onChange={handleChange}
 						placeholder="john.doe@example.com"
 					/>
+					{!isEditing && (
+						<p className="text-xs text-muted-foreground">
+							If provided, the tenant will be able to sign up using this email address.
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -215,45 +220,15 @@ const Tenants = () => {
 	// Function to handle creating a new tenant
 	const handleAddTenant = async (tenantData: TablesInsert<'tenants'>) => {
 		setIsProcessing(true)
-		let userCreationSuccess = false
-		let userCreationMessage = ""
 		
 		try {
-			// Attempt to create user account if email is provided
-			let userId = null;
-			if (tenantData.email) {
-				try {
-					const tempPassword = `water${Math.random().toString(36).slice(-8)}`;
-					const { data: authData, error: authError } = await supabase.auth.signUp({
-						email: tenantData.email,
-						password: tempPassword,
-						options: {
-							emailRedirectTo: `${window.location.origin}/tenant-auth`,
-							data: {
-								full_name: tenantData.name,
-								role: 'tenant'
-							}
-						}
-					});
+			// Create tenant record only - no user account creation
+			// Tenants will create their own accounts via the tenant signup flow
 
-					if (authError) {
-						console.warn('Could not create user account:', authError);
-						userCreationMessage = "User account could not be created, but tenant record will be saved.";
-					} else if (authData.user) {
-						userId = authData.user.id;
-						userCreationSuccess = true;
-						userCreationMessage = "User account created successfully.";
-					}
-				} catch (userError) {
-					console.warn('Error during user creation:', userError);
-					userCreationMessage = "User account creation failed, but tenant record will be saved.";
-				}
-			}
-
-			// Create tenant record (this should now work even if userId is null)
+			// Create tenant record without user_id (will be linked when tenant signs up)
 			const { data, error } = await supabase
 				.from('tenants')
-				.insert([{ ...tenantData, user_id: userId }])
+				.insert([{ ...tenantData, user_id: null }])
 				.select()
 				.single()
 			
@@ -273,16 +248,15 @@ const Tenants = () => {
 			// Close the dialog
 			setShowAddDialog(false)
 			
-			// Show success message with user creation status
+			// Show success message
 			let successMessage = "Tenant added successfully.";
 			if (tenantData.email) {
-				successMessage += ` ${userCreationMessage}`;
+				successMessage += " The tenant can now sign up using this email address.";
 			}
 			
 			toast({
 				title: "Success",
 				description: successMessage,
-				variant: userCreationSuccess ? "default" : "default"
 			})
 		} catch (err) {
 			console.error('Error creating tenant:', err)
