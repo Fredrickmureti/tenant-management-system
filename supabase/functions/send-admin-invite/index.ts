@@ -12,14 +12,33 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Function started, parsing request...');
-    const requestData = await req.json();
-    console.log('Request data:', requestData);
+    console.log('=== FUNCTION STARTED ===');
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.url);
+    
+    // Test endpoint - just return success without doing anything
+    if (req.url.includes('test')) {
+      console.log('Test endpoint hit');
+      return new Response(
+        JSON.stringify({ success: true, message: 'Test endpoint working' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log('Request data received:', JSON.stringify(requestData));
+    } catch (e) {
+      console.error('Failed to parse JSON:', e);
+      throw new Error('Invalid JSON in request body');
+    }
     
     const { inviteId, email, fullName, role } = requestData;
+    console.log('Extracted fields:', { inviteId, email, fullName, role });
 
     if (!email || !fullName || !role) {
-      console.error('Missing required fields:', { email, fullName, role });
+      console.error('Missing required fields:', { email: !!email, fullName: !!fullName, role: !!role });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { 
@@ -29,14 +48,20 @@ serve(async (req) => {
       );
     }
 
-    // Get the Resend API key from environment variables
+    // Check environment variables
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    console.log('RESEND_API_KEY present:', !!resendApiKey);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    
+    console.log('Environment check:');
+    console.log('- RESEND_API_KEY present:', !!resendApiKey);
+    console.log('- RESEND_API_KEY length:', resendApiKey ? resendApiKey.length : 0);
+    console.log('- SUPABASE_URL present:', !!supabaseUrl);
+    console.log('- SUPABASE_URL value:', supabaseUrl);
     
     if (!resendApiKey) {
-      console.error('RESEND_API_KEY not found in environment variables');
+      console.error('RESEND_API_KEY not found');
       return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
+        JSON.stringify({ error: 'Email service not configured - missing RESEND_API_KEY' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -44,95 +69,120 @@ serve(async (req) => {
       );
     }
 
-    // Create the signup link with role metadata
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    console.log('SUPABASE_URL present:', !!supabaseUrl);
-    
+    if (!supabaseUrl) {
+      console.error('SUPABASE_URL not found');
+      return new Response(
+        JSON.stringify({ error: 'SUPABASE_URL not configured' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Create the signup link
     const signupUrl = `${supabaseUrl}/auth/v1/signup`;
     const inviteLink = `${signupUrl}?email=${encodeURIComponent(email)}&full_name=${encodeURIComponent(fullName)}&role=${role}`;
-    
     console.log('Generated invite link:', inviteLink);
 
-    // Prepare the email content
+    // Prepare email content
     const emailSubject = `Invitation to join Water Billing System as ${role.charAt(0).toUpperCase() + role.slice(1)}`;
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #2563eb;">You're Invited to Join Water Billing System</h2>
-        
         <p>Hello ${fullName},</p>
-        
         <p>You have been invited to join the Water Billing System as a <strong>${role.charAt(0).toUpperCase() + role.slice(1)}</strong>.</p>
-        
         <p>To accept this invitation and create your account, please click the button below:</p>
-        
         <div style="text-align: center; margin: 30px 0;">
           <a href="${inviteLink}" 
              style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
             Accept Invitation
           </a>
         </div>
-        
         <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
         <p style="background-color: #f3f4f6; padding: 10px; border-radius: 4px; word-break: break-all;">
           ${inviteLink}
         </p>
-        
         <p>This invitation will expire in 7 days.</p>
-        
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-        
         <p style="color: #6b7280; font-size: 14px;">
           If you didn't expect this invitation, you can safely ignore this email.
         </p>
       </div>
     `;
 
-    console.log('Attempting to send email via Resend...');
+    console.log('Preparing to send email to:', email);
+    console.log('Email subject:', emailSubject);
 
-    // Send the email using Resend
+    // Send email via Resend
+    const emailPayload = {
+      from: 'Water Billing System <onboarding@resend.dev>',
+      to: [email],
+      subject: emailSubject,
+      html: emailHtml,
+    };
+    
+    console.log('Email payload:', JSON.stringify(emailPayload, null, 2));
+
+    console.log('Making request to Resend API...');
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: 'Water Billing System <onboarding@resend.dev>',
-        to: [email],
-        subject: emailSubject,
-        html: emailHtml,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     console.log('Resend response status:', emailResponse.status);
+    console.log('Resend response headers:', Object.fromEntries(emailResponse.headers.entries()));
 
     if (!emailResponse.ok) {
       const errorData = await emailResponse.text();
-      console.error('Resend API error:', errorData);
-      throw new Error(`Failed to send email: ${errorData}`);
+      console.error('Resend API error response:', errorData);
+      throw new Error(`Resend API failed (${emailResponse.status}): ${errorData}`);
     }
 
     const emailResult = await emailResponse.json();
     console.log('Email sent successfully:', emailResult);
 
+    const successResponse = {
+      success: true,
+      message: 'Invitation sent successfully',
+      emailId: emailResult.id,
+      debug: {
+        inviteId,
+        email,
+        fullName,
+        role,
+        inviteLink
+      }
+    };
+    
+    console.log('Returning success response:', successResponse);
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Invitation sent successfully',
-        emailId: emailResult.id 
-      }),
+      JSON.stringify(successResponse),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
 
   } catch (error) {
-    console.error('Error in send-admin-invite function:', error);
+    console.error('=== FUNCTION ERROR ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    const errorResponse = {
+      error: error.message || 'Internal server error',
+      details: error.stack || 'No stack trace available'
+    };
+    
+    console.log('Returning error response:', errorResponse);
     
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Internal server error' 
-      }),
+      JSON.stringify(errorResponse),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
