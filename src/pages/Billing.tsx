@@ -18,7 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Loader2, PlusCircle, Pencil, Trash2 } from 'lucide-react'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, PlusCircle, Pencil, Trash2, AlertTriangle, Info } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { ExportButton } from '@/components/ExportButton'
 import { formatBillingDataForExport } from '@/lib/export-utils'
@@ -69,6 +70,14 @@ const Billing = () => {
     standing_charge: 100,
     due_date: ''
   })
+  
+  // Additional state for enhanced features
+  const [lastRecordedReading, setLastRecordedReading] = useState<number | null>(null)
+  const [loadingLastReading, setLoadingLastReading] = useState(false)
+  const [readingValidation, setReadingValidation] = useState<{
+    type: 'warning' | 'error' | null
+    message: string
+  }>({ type: null, message: '' })
 
   const fetchData = async () => {
     setLoading(true)
@@ -99,6 +108,90 @@ const Billing = () => {
   useEffect(() => {
     fetchData()
   }, [year, month])
+
+  // Helper function to get latest reading for a tenant
+  const getLatestReadingForTenant = async (tenantId: string) => {
+    if (!tenantId) return null
+    
+    setLoadingLastReading(true)
+    try {
+      const { data } = await supabase
+        .from('billing_cycles')
+        .select('current_reading, month, year')
+        .eq('tenant_id', tenantId)
+        .order('year', { ascending: false })
+        .order('month', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      
+      return data ? { reading: data.current_reading, month: data.month, year: data.year } : null
+    } catch (error) {
+      console.error('Error fetching latest reading:', error)
+      return null
+    } finally {
+      setLoadingLastReading(false)
+    }
+  }
+
+  // Validate readings and show warnings
+  const validateReadings = (prevReading: number, currentReading: number) => {
+    if (currentReading < prevReading) {
+      setReadingValidation({
+        type: 'error',
+        message: 'Current reading cannot be less than previous reading. Please check the values.'
+      })
+      return
+    }
+    
+    const consumption = currentReading - prevReading
+    if (consumption > 50) {
+      setReadingValidation({
+        type: 'warning',
+        message: `High consumption detected: ${consumption} m³. Please verify the readings are correct.`
+      })
+      return
+    }
+    
+    if (consumption === 0) {
+      setReadingValidation({
+        type: 'warning',
+        message: 'Zero consumption detected. Please verify the meter reading.'
+      })
+      return
+    }
+    
+    setReadingValidation({ type: null, message: '' })
+  }
+
+  // Handle tenant selection and auto-populate previous reading
+  const handleTenantSelect = async (tenantId: string) => {
+    setFormData(prev => ({ ...prev, tenant_id: tenantId }))
+    
+    if (tenantId) {
+      const latestReading = await getLatestReadingForTenant(tenantId)
+      if (latestReading) {
+        setLastRecordedReading(latestReading.reading)
+        setFormData(prev => ({ 
+          ...prev, 
+          previous_reading: latestReading.reading 
+        }))
+      } else {
+        setLastRecordedReading(null)
+        setFormData(prev => ({ ...prev, previous_reading: 0 }))
+      }
+    } else {
+      setLastRecordedReading(null)
+    }
+  }
+
+  // Update validation when readings change
+  useEffect(() => {
+    if (formData.previous_reading && formData.current_reading) {
+      validateReadings(formData.previous_reading, formData.current_reading)
+    } else {
+      setReadingValidation({ type: null, message: '' })
+    }
+  }, [formData.previous_reading, formData.current_reading])
 
   const handleDeleteBill = async (id: string) => {
     try {
@@ -266,6 +359,8 @@ const Billing = () => {
         standing_charge: 100,
         due_date: ''
       })
+      setLastRecordedReading(null)
+      setReadingValidation({ type: null, message: '' })
     }
   }, [showAddDialog])
 
@@ -347,6 +442,7 @@ const Billing = () => {
                 <tr className="text-left border-b">
                   <th className="py-2 pl-4 pr-2 sm:px-4 min-w-[120px] sticky left-0 bg-background dark:bg-background z-10">Tenant</th>
                   <th className="py-2 px-2 sm:px-4">Unit</th>
+                  <th className="py-2 px-2 sm:px-4">Prev → Curr</th>
                   <th className="py-2 px-2 sm:px-4">Units</th>
                   <th className="py-2 px-2 sm:px-4">Standing</th>
                   <th className="py-2 px-2 sm:px-4">Billed</th>
@@ -365,6 +461,11 @@ const Billing = () => {
                       </div>
                     </td>
                     <td className="py-3 px-2 sm:px-4">{r.tenant?.house_unit_number || '—'}</td>
+                    <td className="py-3 px-2 sm:px-4 text-xs">
+                      <div className="flex flex-col">
+                        <span className="text-muted-foreground">{r.previous_reading} → {r.current_reading}</span>
+                      </div>
+                    </td>
                     <td className="py-3 px-2 sm:px-4">{r.units_used} m³</td>
                     <td className="py-3 px-2 sm:px-4">{formatKES(r.standing_charge || 100)}</td>
                     <td className="py-3 px-2 sm:px-4">{formatKES(r.bill_amount)}</td>
@@ -430,6 +531,10 @@ const Billing = () => {
             <div className="flex justify-between">
               <span className="font-semibold">Unit</span>
               <span>{r.tenant?.house_unit_number || '—'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold">Readings</span>
+              <span className="text-sm text-muted-foreground">{r.previous_reading} → {r.current_reading}</span>
             </div>
             <div className="flex justify-between">
               <span className="font-semibold">Units</span>
@@ -513,7 +618,7 @@ const Billing = () => {
           <form onSubmit={handleCreateBill} className="space-y-4">
             <div>
               <Label htmlFor="tenant">Tenant</Label>
-              <Select value={formData.tenant_id} onValueChange={(value) => setFormData(prev => ({ ...prev, tenant_id: value }))}>
+              <Select value={formData.tenant_id} onValueChange={handleTenantSelect}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select tenant" />
                 </SelectTrigger>
@@ -525,6 +630,20 @@ const Billing = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {loadingLastReading && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Loading last reading...</span>
+                </div>
+              )}
+              {lastRecordedReading !== null && (
+                <div className="flex items-center gap-2 mt-2 p-2 bg-muted rounded-md">
+                  <Info className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm">
+                    Last recorded reading: <span className="font-medium">{lastRecordedReading} m³</span>
+                  </span>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -572,6 +691,40 @@ const Billing = () => {
                 />
               </div>
             </div>
+
+            {/* Reading Validation Alert */}
+            {readingValidation.type && (
+              <Alert variant={readingValidation.type === 'error' ? 'destructive' : 'default'}>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{readingValidation.message}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Consumption Preview */}
+            {formData.previous_reading > 0 && formData.current_reading > 0 && (
+              <div className="p-3 bg-muted rounded-md">
+                <div className="text-sm font-medium mb-2">Billing Preview:</div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Consumption:</span>
+                    <span className="font-medium">{formData.current_reading - formData.previous_reading} m³</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Water charges:</span>
+                    <span>{formatKES((formData.current_reading - formData.previous_reading) * formData.rate_per_unit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Standing charge:</span>
+                    <span>{formatKES(formData.standing_charge)}</span>
+                  </div>
+                  <div className="flex justify-between font-medium border-t pt-1">
+                    <span>Total bill:</span>
+                    <span>{formatKES((formData.current_reading - formData.previous_reading) * formData.rate_per_unit + formData.standing_charge)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="due_date">Due Date</Label>
               <Input
@@ -586,7 +739,10 @@ const Billing = () => {
               <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isProcessing}>
+              <Button 
+                type="submit" 
+                disabled={isProcessing || readingValidation.type === 'error'}
+              >
                 {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create Bill
               </Button>
@@ -657,6 +813,40 @@ const Billing = () => {
                 />
               </div>
             </div>
+
+            {/* Reading Validation Alert for Edit */}
+            {readingValidation.type && (
+              <Alert variant={readingValidation.type === 'error' ? 'destructive' : 'default'}>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{readingValidation.message}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Consumption Preview for Edit */}
+            {formData.previous_reading > 0 && formData.current_reading > 0 && (
+              <div className="p-3 bg-muted rounded-md">
+                <div className="text-sm font-medium mb-2">Updated Billing Preview:</div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Consumption:</span>
+                    <span className="font-medium">{formData.current_reading - formData.previous_reading} m³</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Water charges:</span>
+                    <span>{formatKES((formData.current_reading - formData.previous_reading) * formData.rate_per_unit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Standing charge:</span>
+                    <span>{formatKES(formData.standing_charge)}</span>
+                  </div>
+                  <div className="flex justify-between font-medium border-t pt-1">
+                    <span>Total bill:</span>
+                    <span>{formatKES((formData.current_reading - formData.previous_reading) * formData.rate_per_unit + formData.standing_charge)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="edit_due_date">Due Date</Label>
               <Input
@@ -671,7 +861,10 @@ const Billing = () => {
               <Button type="button" variant="outline" onClick={() => setEditingBill(undefined)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isProcessing}>
+              <Button 
+                type="submit" 
+                disabled={isProcessing || readingValidation.type === 'error'}
+              >
                 {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Update Bill
               </Button>
