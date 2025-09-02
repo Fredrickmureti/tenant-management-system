@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { supabase } from '@/integrations/supabase/client'
 import { formatKES } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useRealTimeClock, getTimeGreeting, formatTime, formatDate } from '@/hooks/useRealTime'
 import { 
   Calendar, 
   CreditCard, 
@@ -15,7 +16,8 @@ import {
   Mail,
   MapPin,
   User,
-  LogOut
+  LogOut,
+  Clock
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -65,11 +67,14 @@ const TenantDashboard = () => {
   const { user, signOut } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const currentTime = useRealTimeClock()
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null)
   const [currentBill, setCurrentBill] = useState<BillingCycle | null>(null)
   const [recentBills, setRecentBills] = useState<BillingCycle[]>([])
   const [recentPayments, setRecentPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
@@ -79,6 +84,7 @@ const TenantDashboard = () => {
   const fetchTenantData = async () => {
     if (!user) return
 
+    if (!loading) setIsRefreshing(true)
     setLoading(true)
     try {
       // Get tenant info linked to this user
@@ -144,6 +150,7 @@ const TenantDashboard = () => {
         .limit(10)
 
       setRecentPayments(paymentsData || [])
+      setLastUpdated(new Date())
 
     } catch (error) {
       console.error('Error fetching tenant data:', error)
@@ -154,12 +161,20 @@ const TenantDashboard = () => {
       })
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
     }
   }
 
   useEffect(() => {
     if (user) {
       fetchTenantData()
+      
+      // Set up auto-refresh every 60 seconds (less frequent than admin dashboard)
+      const interval = setInterval(() => {
+        fetchTenantData()
+      }, 60000)
+
+      return () => clearInterval(interval)
     } else {
       navigate('/tenant-auth')
     }
@@ -199,22 +214,41 @@ const TenantDashboard = () => {
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header with Sign Out */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div className="text-center md:text-left">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-              Welcome, {tenantInfo.name}
+              {getTimeGreeting(currentTime)}, {tenantInfo.name}
             </h1>
-            <p className="text-muted-foreground">Unit {tenantInfo.house_unit_number}</p>
+            <p className="text-muted-foreground">Unit {tenantInfo.house_unit_number} • Mwanzo Flats</p>
           </div>
-          <Button onClick={handleSignOut} variant="outline" size="sm">
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex flex-col sm:items-end gap-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span className="font-mono">
+                {formatTime(currentTime)}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {formatDate(currentTime)}
+            </p>
+            <p className="text-xs text-muted-foreground/70 flex items-center gap-1">
+              {isRefreshing && (
+                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+              )}
+              Last updated: {formatTime(lastUpdated).slice(0, -3)}
+            </p>
+            <Button onClick={handleSignOut} variant="outline" size="sm" className="self-center sm:self-end mt-2">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-card shadow-sm">
+          <Card className={`bg-card shadow-sm transition-all duration-300 ${
+            isRefreshing ? 'animate-pulse' : ''
+          }`}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -237,7 +271,9 @@ const TenantDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card shadow-sm">
+          <Card className={`bg-card shadow-sm transition-all duration-300 ${
+            isRefreshing ? 'animate-pulse' : ''
+          }`}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -253,7 +289,9 @@ const TenantDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card shadow-sm">
+          <Card className={`bg-card shadow-sm transition-all duration-300 ${
+            isRefreshing ? 'animate-pulse' : ''
+          }`}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -274,7 +312,9 @@ const TenantDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-card shadow-sm">
+          <Card className={`bg-card shadow-sm transition-all duration-300 ${
+            isRefreshing ? 'animate-pulse' : ''
+          }`}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>

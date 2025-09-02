@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Receipt, DollarSign, AlertTriangle } from 'lucide-react';
+import { Users, Receipt, DollarSign, AlertTriangle, Clock } from 'lucide-react';
 import { formatKES } from '@/lib/utils';
+import { useRealTimeClock, getTimeGreeting, formatTime, formatDate } from '@/hooks/useRealTime';
 
 interface DashboardStats {
   totalTenants: number;
@@ -13,6 +14,9 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
+  const currentTime = useRealTimeClock();
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalTenants: 0,
     totalBilledThisMonth: 0,
@@ -24,10 +28,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
+    
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchDashboardStats();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardStats = async () => {
     try {
+      setIsRefreshing(true);
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
       const currentYear = currentDate.getFullYear();
@@ -58,10 +70,13 @@ const Dashboard = () => {
         totalOutstanding,
         defaultersCount,
       });
+      
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -117,15 +132,27 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Mwanzo Flats Management System</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {getTimeGreeting(currentTime)} - Mwanzo Flats Management System
+          </p>
         </div>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          {new Date().toLocaleDateString('en-KE', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
+        <div className="flex flex-col sm:items-end gap-1">
+          <div className="flex items-center gap-2 text-sm sm:text-base text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span className="font-mono">
+              {formatTime(currentTime)}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {formatDate(currentTime)}
+          </p>
+          <p className="text-xs text-muted-foreground/70 flex items-center gap-1">
+            {isRefreshing && (
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            )}
+            Last updated: {formatTime(lastUpdated).slice(0, -3)}
+          </p>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -133,10 +160,17 @@ const Dashboard = () => {
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={stat.title} 
+              className={`hover:shadow-md transition-all duration-300 ${
+                isRefreshing ? 'animate-pulse' : ''
+              }`}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
+                <Icon className={`h-4 w-4 ${stat.color} ${
+                  isRefreshing ? 'animate-pulse' : ''
+                }`} />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl sm:text-3xl font-bold tracking-tight">{stat.value}</div>
