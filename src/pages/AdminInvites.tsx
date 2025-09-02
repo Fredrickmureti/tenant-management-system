@@ -5,6 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { UserPlus, Mail, Clock, Check, X, AlertCircle, Trash2, Users, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,6 +59,7 @@ const AdminInvites = () => {
   const [sending, setSending] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
   const { toast } = useToast();
   const { canManageAdmins, isSuperAdmin } = useUserRole();
   const { user } = useAuth();
@@ -123,19 +135,21 @@ const AdminInvites = () => {
   };
 
   const handleRemoveUser = async (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to remove ${userName}? This action cannot be undone.`)) {
-      return;
-    }
+    setUserToDelete({ id: userId, name: userName });
+  };
+
+  const confirmRemoveUser = async () => {
+    if (!userToDelete) return;
 
     setUsersLoading(true);
     try {
-      console.log('Attempting to delete user:', userId);
+      console.log('Attempting to delete user:', userToDelete.id);
       
       // Delete from profiles table first 
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
-        .eq('user_id', userId);
+        .eq('user_id', userToDelete.id);
 
       if (profileError) {
         console.error('Error deleting profile:', profileError);
@@ -143,7 +157,7 @@ const AdminInvites = () => {
       }
 
       // Then delete from auth.users using admin API
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      const { error: authError } = await supabase.auth.admin.deleteUser(userToDelete.id);
       
       if (authError) {
         console.error('Error deleting auth user:', authError);
@@ -153,11 +167,12 @@ const AdminInvites = () => {
 
       toast({
         title: "Success",
-        description: `${userName} has been removed successfully`,
+        description: `${userToDelete.name} has been removed successfully`,
       });
 
       // Reload users list
       await loadUsers();
+      setUserToDelete(null); // Close the dialog
     } catch (error: any) {
       console.error('Error removing user:', error);
       toast({
@@ -502,6 +517,28 @@ const AdminInvites = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent className="mx-4 sm:mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Admin User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <strong>{userToDelete?.name}</strong>? 
+              This action cannot be undone and will permanently delete their account and revoke all access.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmRemoveUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

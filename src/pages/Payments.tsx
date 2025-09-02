@@ -168,7 +168,8 @@ const PaymentForm = ({
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-4">
-			<div className="grid gap-4">
+			<div className="max-h-[60vh] overflow-y-auto px-1">
+				<div className="grid gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="tenant_id">Select Tenant</Label>
 					{isEditing ? (
@@ -370,6 +371,7 @@ const PaymentForm = ({
 						placeholder="Transaction ID, reference number, etc."
 					/>
 				</div>
+			</div>
 			</div>
 
 			<DialogFooter>
@@ -673,7 +675,7 @@ const Payments = () => {
 			
 			{/* Add Payment Dialog */}
 			<Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-				<DialogContent className="mx-4 sm:mx-auto">
+				<DialogContent className="mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>Record New Payment</DialogTitle>
 						<DialogDescription>
@@ -694,7 +696,7 @@ const Payments = () => {
 					open={!!editingPayment} 
 					onOpenChange={(open) => !open && setEditingPayment(undefined)}
 				>
-					<DialogContent className="mx-4 sm:mx-auto">
+					<DialogContent className="mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
 						<DialogHeader>
 							<DialogTitle>Edit Payment</DialogTitle>
 							<DialogDescription>
