@@ -1,4 +1,4 @@
-# Water Billing System - Administrator Manual
+# Mwanzo Flats Management System - Administrator Manual
 
 ## Table of Contents
 1. [System Overview](#system-overview)
@@ -18,7 +18,7 @@
 ## System Overview
 
 ### What is this system?
-This is a comprehensive water billing management system designed for property managers and water utility companies to:
+This is a comprehensive water billing management system designed for Mwanzo Flats property to:
 - Track tenant information and water meter readings
 - Generate monthly water bills automatically
 - Record payments and track balances

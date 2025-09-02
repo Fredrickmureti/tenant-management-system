@@ -59,9 +59,9 @@ const handler = async (req: Request): Promise<Response> => {
           } else {
             try {
               const emailResponse = await resend.emails.send({
-                from: 'Property Management <noreply@resend.dev>',
+                from: 'Mwanzo Flats <noreply@resend.dev>',
                 to: [tenant.email],
-                subject: message.subject || 'Message from Property Management',
+                subject: message.subject || 'Message from Mwanzo Flats',
                 html: `
                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2>Hello ${tenant.name},</h2>
@@ -70,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
                     </div>
                     <p style="color: #666; font-size: 14px;">
                       Best regards,<br>
-                      Property Management Team
+                      Mwanzo Flats Management Team
                     </p>
                   </div>
                 `,

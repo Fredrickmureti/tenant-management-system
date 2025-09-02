@@ -1,9 +1,9 @@
-TENANT MANAGEMENT SYSTEM - USER GUIDE
-=====================================
+MWANZO FLATS MANAGEMENT SYSTEM - USER GUIDE
+==========================================
 
 WHAT THIS SYSTEM DOES
 =====================
-This system helps you manage water billing for rental properties. It tracks tenants, records meter readings, calculates bills, and processes payments automatically.
+This system helps you manage water billing for Mwanzo Flats rental property. It tracks tenants, records meter readings, calculates bills, and processes payments automatically.
 
 HOW TO USE THE SYSTEM
 ====================

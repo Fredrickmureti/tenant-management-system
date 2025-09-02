@@ -415,7 +415,7 @@ const TenantAuth = () => {
             </div>
           </div>
           <CardTitle className="text-2xl">
-            {isSignUp ? 'Create Tenant Account' : 'Tenant Portal'}
+            {isSignUp ? 'Create Tenant Account' : 'Mwanzo Flats Tenant Portal'}
           </CardTitle>
           <p className="text-muted-foreground">
             {isSignUp 

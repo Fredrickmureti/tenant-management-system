@@ -1,12 +1,12 @@
-# TenantFlow Bills
+# Mwanzo Flats Management System
 
-> Modern, multi-tenant billing and payments platform for property managers and tenants.
+> Modern tenant management and billing platform for Mwanzo Flats property.
 
 ---
 
 ## 🚀 Overview
 
-TenantFlow Bills is a full-featured, modern web application for managing tenants, utility billing cycles, and payments. It empowers property managers with a beautiful admin dashboard and gives tenants a secure portal to view bills, payment history, and their profile—all powered by Supabase and React.
+Mwanzo Flats Management System is a full-featured, modern web application for managing tenants, utility billing cycles, and payments. It empowers property managers with a beautiful admin dashboard and gives tenants a secure portal to view bills, payment history, and their profile—all powered by Supabase and React.
 
 ---
 

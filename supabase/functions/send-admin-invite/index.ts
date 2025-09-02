@@ -96,16 +96,16 @@ serve(async (req) => {
       // Send email with existing login credentials
       try {
         const emailResponse = await resend.emails.send({
-          from: 'Admin System <onboarding@resend.dev>',
+          from: 'Mwanzo Flats Admin <onboarding@resend.dev>',
           to: [email],
           subject: `Your ${role} account is ready`,
           html: `
             <h1>Welcome back, ${fullName}!</h1>
-            <p>Your account has been updated with ${role} privileges.</p>
+            <p>Your account has been updated with ${role} privileges for Mwanzo Flats.</p>
             <p>You can log in using your existing credentials at:</p>
             <p><a href="https://fae818c2-826c-4cf6-bf3b-523dd7333715.sandbox.lovable.dev" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
             <p>If you've forgotten your password, you can reset it using the "Forgot Password" link.</p>
-            <p>Best regards,<br>The Admin Team</p>
+            <p>Best regards,<br>Mwanzo Flats Admin Team</p>
           `,
         });
         console.log('Email sent to existing user successfully:', emailResponse);
@@ -161,12 +161,12 @@ serve(async (req) => {
     // Send email with login credentials
     try {
       const emailResponse = await resend.emails.send({
-        from: 'Admin System <onboarding@resend.dev>',
+        from: 'Mwanzo Flats Admin <onboarding@resend.dev>',
         to: [email],
         subject: `Welcome! Your ${role} account is ready`,
         html: `
           <h1>Welcome, ${fullName}!</h1>
-          <p>Your ${role} account has been created successfully.</p>
+          <p>Your ${role} account has been created successfully for Mwanzo Flats.</p>
           <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
             <h3>Your Login Credentials:</h3>
             <p><strong>Email:</strong> ${email}</p>
@@ -174,7 +174,7 @@ serve(async (req) => {
           </div>
           <p><a href="https://fae818c2-826c-4cf6-bf3b-523dd7333715.sandbox.lovable.dev" style="background: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Log In Now</a></p>
           <p><strong>Important:</strong> Please change your password after your first login for security.</p>
-          <p>Best regards,<br>The Admin Team</p>
+          <p>Best regards,<br>Mwanzo Flats Admin Team</p>
         `,
       });
       console.log('Welcome email sent successfully:', emailResponse);

@@ -82,7 +82,7 @@ const Layout = () => {
           <div className="flex h-14 items-center justify-between px-4 border-b">
             <div className="flex items-center space-x-2">
               <Droplets className="h-6 w-6 text-primary" />
-              {!sidebarCollapsed && <span className="text-lg font-semibold">Water Billing</span>}
+              {!sidebarCollapsed && <span className="text-lg font-semibold">Mwanzo Flats</span>}
             </div>
             <Button
               variant="ghost"
@@ -187,7 +187,7 @@ const Layout = () => {
               <h1 className="text-base font-medium">{currentPageName}</h1>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome back, Admin</span>
+              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome to Mwanzo Flats</span>
               <ThemeToggle />
             </div>
           </div>

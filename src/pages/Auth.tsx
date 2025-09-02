@@ -61,7 +61,7 @@ const Auth = () => {
           </div>
           <CardTitle className="text-2xl">Administrator Sign In</CardTitle>
           <CardDescription>
-            Access the water billing management system
+            Access the Mwanzo Flats management system
           </CardDescription>
         </CardHeader>
         <CardContent>

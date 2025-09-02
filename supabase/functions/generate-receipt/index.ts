@@ -44,7 +44,7 @@ const generateReceiptHTML = (tenant: any, billingCycle: any, payments: any[]) =>
       <div class="receipt">
         <div class="header">
           <h1>PAYMENT RECEIPT</h1>
-          <p>Property Management System</p>
+          <p>Mwanzo Flats Management System</p>
         </div>
         
         <div class="content">
@@ -183,7 +183,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email with receipt
     const emailResponse = await resend.emails.send({
-      from: 'Property Management <noreply@resend.dev>',
+      from: 'Mwanzo Flats <noreply@resend.dev>',
       to: [tenant.email],
       subject: `Payment Receipt - ${billingCycle.month}/${billingCycle.year}`,
       html: receiptHTML,

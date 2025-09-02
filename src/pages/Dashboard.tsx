@@ -115,7 +115,10 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Mwanzo Flats Management System</p>
+        </div>
         <p className="text-sm sm:text-base text-muted-foreground">
           {new Date().toLocaleDateString('en-KE', {
             year: 'numeric',
